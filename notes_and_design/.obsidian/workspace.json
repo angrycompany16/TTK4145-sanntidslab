@@ -1,0 +1,191 @@
+{
+  "main": {
+    "id": "8d9f952d236639c6",
+    "type": "split",
+    "children": [
+      {
+        "id": "98107aac7a99ede4",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5c4eacaa43e97e89",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "Networking-module-class-diagram.canvas",
+                "viewState": {
+                  "x": 0,
+                  "y": 0,
+                  "zoom": 0
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "Networking-module-class-diagram"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ec27e3bcee6edbc9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9cea3bd4e5ad0218",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "34d65e28a1b11bb0",
+    "type": "split",
+    "children": [
+      {
+        "id": "27ed2bfd2151e01a",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "205ab1c19a27b76f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "5b47e8069f1d2173",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "7422624844c9d76f",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "23f208c3bc609ce9",
+    "type": "split",
+    "children": [
+      {
+        "id": "dd66fe4b6fc33c84",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "71b124e86af8177c",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Networking-module-class-diagram.canvas",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Networking-module-class-diagram"
+            }
+          },
+          {
+            "id": "5ca5a3b50c728316",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Networking-module-class-diagram.canvas",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Networking-module-class-diagram"
+            }
+          },
+          {
+            "id": "9a6e3373fc354c69",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "cd3556c921a9842b",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Networking-module-class-diagram.canvas"
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Networking-module-class-diagram"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "205ab1c19a27b76f",
+  "lastOpenFiles": [
+    "Networking-module.md",
+    "Networking-module-class-diagram.canvas",
+    "Welcome.md",
+    "Untitled"
+  ]
+}
