@@ -1,0 +1,12 @@
+{
+	"nodes":[
+		{"id":"03287b093a389f3b","type":"file","file":"Networking/Submodules/conn.go.md","x":40,"y":-660,"width":400,"height":400,"color":"4"},
+		{"id":"6037598fa2f005fa","type":"file","file":"Networking/Submodules/peers.go.md","x":-600,"y":-660,"width":400,"height":400,"color":"2"},
+		{"id":"c5caf886517eff08","type":"file","file":"Networking/Submodules/bcast.go.md","x":-600,"y":-186,"width":400,"height":400,"color":"1"},
+		{"id":"d98515559175c3d8","type":"file","file":"Networking/Submodules/localip.go.md","x":40,"y":-186,"width":400,"height":400,"color":"6"}
+	],
+	"edges":[
+		{"id":"f92cbec4e0d15d95","fromNode":"6037598fa2f005fa","fromSide":"right","toNode":"03287b093a389f3b","toSide":"left","label":"imports"},
+		{"id":"419b0ec2edf067bc","fromNode":"c5caf886517eff08","fromSide":"right","toNode":"03287b093a389f3b","toSide":"left","label":"imports"}
+	]
+}

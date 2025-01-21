@@ -1,0 +1,1 @@
+I don't know how this works, but it seems like it sets up a socket for communication with other computers
