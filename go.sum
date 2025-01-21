@@ -1,2 +1,4 @@
 github.com/angrycompany16/Network-go v0.0.0-20250121132626-daf2c1228e3a h1:PsdDAFSvNGLHcmpjAdKe/Zm+gYL/EfJf9YMSpPj/l5Q=
 github.com/angrycompany16/Network-go v0.0.0-20250121132626-daf2c1228e3a/go.mod h1:ACDBse8j3swkX4dCstr07PmZ6yQwqqVqR+jxG13tHuk=
+github.com/angrycompany16/driver-go v0.0.0-20250121182550-917bcf54bcbf h1:sK1m2RvIXIUY/nkMkWxn1mHgNagD2HQllzE9zah1/e8=
+github.com/angrycompany16/driver-go v0.0.0-20250121182550-917bcf54bcbf/go.mod h1:cPWgatV1wodJklk3N/0yuIiDGQ5bHkGIsHfgrktM6x0=
