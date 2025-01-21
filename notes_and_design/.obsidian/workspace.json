@@ -11,17 +11,14 @@
             "id": "5c4eacaa43e97e89",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "markdown",
               "state": {
-                "file": "Networking-module-class-diagram.canvas",
-                "viewState": {
-                  "x": 0,
-                  "y": 0,
-                  "zoom": 0
-                }
+                "file": "Networking/Networking-module.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-layout-dashboard",
-              "title": "Networking-module-class-diagram"
+              "icon": "lucide-file",
+              "title": "Networking-module"
             }
           }
         ]
@@ -112,7 +109,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Networking-module-class-diagram.canvas",
+                "file": "Networking/Networking-module.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -122,7 +119,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for Networking-module-class-diagram"
+              "title": "Backlinks for Networking-module"
             }
           },
           {
@@ -131,12 +128,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Networking-module-class-diagram.canvas",
+                "file": "Networking/Networking-module.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from Networking-module-class-diagram"
+              "title": "Outgoing links from Networking-module"
             }
           },
           {
@@ -158,10 +155,10 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Networking-module-class-diagram.canvas"
+                "file": "Networking/Networking-module.md"
               },
               "icon": "lucide-list",
-              "title": "Outline of Networking-module-class-diagram"
+              "title": "Outline of Networking-module"
             }
           }
         ]
@@ -183,9 +180,9 @@
   },
   "active": "205ab1c19a27b76f",
   "lastOpenFiles": [
-    "Networking-module.md",
-    "Networking-module-class-diagram.canvas",
-    "Welcome.md",
-    "Untitled"
+    "Networking",
+    "Networking/Networking-module-class-diagram.canvas",
+    "Networking/Networking-module.md",
+    "Welcome.md"
   ]
 }

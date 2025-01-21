@@ -1,1 +1,0 @@
-This is how the networking module will be implemented
