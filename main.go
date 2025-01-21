@@ -4,10 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sanntidslab/network/bcast"
-	"sanntidslab/network/localip"
-	"sanntidslab/network/peers"
 	"time"
+
+	"github.com/angrycompany16/Network-go/network/bcast"
+	"github.com/angrycompany16/Network-go/network/localip"
+	"github.com/angrycompany16/Network-go/network/peers"
 )
 
 // Just a little bit of test code

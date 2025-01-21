@@ -22,22 +22,6 @@
             }
           }
         ]
-      },
-      {
-        "id": "ec27e3bcee6edbc9",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "9cea3bd4e5ad0218",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
-            }
-          }
-        ]
       }
     ],
     "direction": "vertical"
@@ -178,11 +162,16 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "205ab1c19a27b76f",
+  "active": "5c4eacaa43e97e89",
   "lastOpenFiles": [
-    "Networking",
-    "Networking/Networking-module-class-diagram.canvas",
+    "Networking/Networking-module-diagram.canvas",
+    "Networking/Submodules/conn.go.md",
+    "Networking/Submodules/localip.go.md",
+    "Networking/Submodules/peers.go.md",
+    "Networking/Submodules/bcast.go.md",
     "Networking/Networking-module.md",
+    "Networking/Submodules",
+    "Networking",
     "Welcome.md"
   ]
 }
