@@ -93,7 +93,6 @@ int requests_shouldClearImmediately(Elevator e, int btn_floor, Button btn_type){
 }
 
 Elevator requests_clearAtCurrentFloor(Elevator e){
-        
     switch(e.config.clearRequestVariant){
     case CV_All:
         for(Button btn = 0; btn < N_BUTTONS; btn++){
