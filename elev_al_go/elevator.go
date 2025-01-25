@@ -43,6 +43,53 @@ type DirBehaviourPair struct {
 	behaviour ElevatorBehaviour
 }
 
+const (
+	NUM_FLOORS  = 4
+	NUM_BUTTONS = 3
+)
+
+type Dir int
+
+const (
+	DIR_DOWN Dir = iota - 1
+	DIR_STOP
+	DIR_UP
+)
+
+type Button int
+
+const (
+	BTN_HALLUP Button = iota
+	BTN_HALLDOWN
+	BTN_HALLCAB
+)
+
+func ElevioDirToString(d Dir) string {
+	switch d {
+	case DIR_UP:
+		return "D_Up"
+	case DIR_DOWN:
+		return "D_Down"
+	case DIR_STOP:
+		return "D_Stop"
+	default:
+		return "D_UNDEFINED"
+	}
+}
+
+func ElevioButtonToString(b Button) string {
+	switch b {
+	case BTN_HALLUP:
+		return "B_HallUp"
+	case BTN_HALLDOWN:
+		return "B_HallDown"
+	case BTN_HALLCAB:
+		return "B_Cab"
+	default:
+		return "B_UNDEFINED"
+	}
+}
+
 func EbToString(behaviour ElevatorBehaviour) string {
 	switch behaviour {
 	case BEHAVIOUR_IDLE:
@@ -65,7 +112,7 @@ func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
 	fmt.Println("  |  | up  | dn  | cab |")
 	for f := NUM_FLOORS - 1; f >= 0; f-- {
-		fmt.Printf("  | %d\n", f)
+		fmt.Printf("  | %d", f)
 		for btn := 0; btn < NUM_BUTTONS; btn++ {
 			if (f == NUM_FLOORS-1 && btn == int(BTN_HALLUP)) || (f == 0 && btn == int(BTN_HALLDOWN)) {
 				fmt.Print("|     ")

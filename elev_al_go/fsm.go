@@ -3,27 +3,28 @@ package elevalgo
 import (
 	"fmt"
 	"runtime"
-	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
 var (
 	elevator Elevator
-	timer    = MakeTimer(time.Second * 3)
 )
 
-func MakeFsm() Elevator {
+func MakeFsm() {
 	elevator = MakeUninitializedelevator()
 	elevator.config.clearRequestVariation = CV_InDirn
-	return elevator
+	FsmOnInitBetweenFloors()
 }
 
 func SetAllLights(elevator Elevator) {
 	for floor := 0; floor < NUM_FLOORS; floor++ {
 		for btn := 0; btn < NUM_BUTTONS; btn++ {
-			elevio.SetButtonLamp(elevio.BT_HallDown, btn, elevator.requests[floor][btn])
-			elevio.SetButtonLamp(elevio.BT_HallUp, btn, elevator.requests[floor][btn])
+			if floor == 4 {
+				fmt.Println("floor ", floor)
+				fmt.Println("button ", btn)
+			}
+			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.requests[floor][btn])
 		}
 	}
 }
@@ -46,7 +47,7 @@ func FsmOnRequestButtonPress(btn_floor int, btn_type Button) {
 	switch elevator.behaviour {
 	case BEHAVIOUR_DOOR_OPEN:
 		if elevator.RequestsShouldClearImmediately(btn_floor, btn_type) {
-			timer.Start()
+			StartTimer()
 		} else {
 			elevator.requests[btn_floor][btn_type] = true
 		}
@@ -60,8 +61,8 @@ func FsmOnRequestButtonPress(btn_floor int, btn_type Button) {
 		switch pair.behaviour {
 		case BEHAVIOUR_DOOR_OPEN:
 			elevio.SetDoorOpenLamp(true)
-			timer.Start()
-			elevator = RequestsClearAtCurrentFloor(elevator)
+			StartTimer()
+			elevator = RequestsClearAtCurrentFloor(elevator) // Ask: Why make this a pure function?
 		case BEHAVIOUR_MOVING:
 			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
 		}
@@ -92,7 +93,7 @@ func FsmOnFloorArrival(newFloor int) {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
 			elevator = RequestsClearAtCurrentFloor(elevator)
-			timer.Start()
+			StartTimer()
 			SetAllLights(elevator)
 			elevator.behaviour = BEHAVIOUR_DOOR_OPEN
 		}
@@ -119,10 +120,10 @@ func FsmOnDoorTimeout() {
 
 		switch elevator.behaviour {
 		case BEHAVIOUR_DOOR_OPEN:
-			timer.Start()
+			StartTimer()
 			elevator = RequestsClearAtCurrentFloor(elevator)
 			SetAllLights(elevator)
-		case BEHAVIOUR_IDLE:
+		case BEHAVIOUR_MOVING, BEHAVIOUR_IDLE:
 			elevio.SetDoorOpenLamp(false)
 			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
 		}
@@ -130,4 +131,10 @@ func FsmOnDoorTimeout() {
 
 	fmt.Printf("\nNew state:\n")
 	elevator.print()
+}
+
+func DoorObstructed() {
+	if elevator.behaviour == BEHAVIOUR_DOOR_OPEN {
+		StartTimer()
+	}
 }

@@ -2,29 +2,34 @@ package elevalgo
 
 import "time"
 
-type Timer struct {
+var (
+	pollRate  = 20 * time.Millisecond
+	timeOut   = 3 * time.Second
 	startTime time.Time
-	timeOut   time.Duration
 	active    bool
+)
+
+func StartTimer() {
+	startTime = time.Now()
+	active = true
 }
 
-func (t *Timer) Start() {
-	t.startTime = time.Now()
-	t.active = true
+func StopTimer() {
+	active = false
 }
 
-func (t *Timer) Stop() {
-	t.active = false
-}
-
-func (t *Timer) TimedOut() bool {
-	return t.active && time.Since(t.startTime) > t.timeOut
-}
-
-func MakeTimer(timeOut time.Duration) *Timer {
-	return &Timer{
-		time.Now(),
-		timeOut,
-		false,
+func PollTimer(receiver chan<- bool) {
+	prev := false
+	for {
+		time.Sleep(pollRate)
+		timedOut := active && time.Since(startTime) > timeOut
+		if timedOut && timedOut != prev {
+			receiver <- true
+		}
+		prev = timedOut
 	}
+}
+
+func TimedOut() bool {
+	return active && time.Since(startTime) > timeOut
 }

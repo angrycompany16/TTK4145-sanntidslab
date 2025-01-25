@@ -36,10 +36,10 @@ func (e *Elevator) RequestsChooseDirection() DirBehaviourPair {
 	case DIR_UP:
 		if e.RequestsAbove() {
 			return DirBehaviourPair{DIR_UP, BEHAVIOUR_MOVING}
-		} else if e.RequestsBelow() {
-			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_DOOR_OPEN}
 		} else if e.RequestsHere() {
 			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_DOOR_OPEN}
+		} else if e.RequestsBelow() {
+			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_MOVING}
 		} else {
 			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_IDLE}
 		}
