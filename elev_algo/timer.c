@@ -7,7 +7,6 @@ static double get_wall_time(void){
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
-
 static  double          timerEndTime;
 static  int             timerActive;
 

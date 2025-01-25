@@ -1,47 +1,5 @@
 package elevalgo
 
-import (
-	"time"
-)
-
-type ElevatorBehaviour int
-
-const (
-	BEHAVIOUR_IDLE = iota
-	BEHAVIOUR_DOOR_OPEN
-	BEHAVIOUR_MOVING
-)
-
-type ClearRequestVariant int
-
-const (
-	// Assume everyone waiting for the elevator gets on the elevator, even if
-	// they will be traveling in the "wrong" direction for a while
-	CV_All = iota
-
-	// Assume that only those that want to travel in the current direction
-	// enter the elevator, and keep waiting outside otherwise
-	CV_InDirn
-)
-
-type Elevator struct {
-	floor     int
-	direction Dir
-	requests  [NUM_FLOORS][NUM_BUTTONS]bool
-	behaviour ElevatorBehaviour
-	config    config
-}
-
-type config struct {
-	clearRequestVariation ClearRequestVariant
-	doorOpenDuration      time.Duration
-}
-
-type DirBehaviourPair struct {
-	dir       Dir
-	behaviour ElevatorBehaviour
-}
-
 func (e *Elevator) RequestsAbove() bool {
 	for f := e.floor + 1; f < NUM_FLOORS; f++ {
 		for btn := 0; btn < NUM_BUTTONS; btn++ {

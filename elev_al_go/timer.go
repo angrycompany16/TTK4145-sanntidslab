@@ -21,10 +21,10 @@ func (t *Timer) TimedOut() bool {
 	return t.active && time.Since(t.startTime) > t.timeOut
 }
 
-func MakeTimer() *Timer {
+func MakeTimer(timeOut time.Duration) *Timer {
 	return &Timer{
 		time.Now(),
-		time.Second * 3,
+		timeOut,
 		false,
 	}
 }
