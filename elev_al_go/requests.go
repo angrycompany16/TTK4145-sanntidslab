@@ -37,7 +37,7 @@ func (e *Elevator) RequestsChooseDirection() DirBehaviourPair {
 		if e.RequestsAbove() {
 			return DirBehaviourPair{DIR_UP, BEHAVIOUR_MOVING}
 		} else if e.RequestsHere() {
-			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_DOOR_OPEN}
+			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_DOOR_OPEN}
 		} else if e.RequestsBelow() {
 			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_MOVING}
 		} else {
@@ -47,7 +47,7 @@ func (e *Elevator) RequestsChooseDirection() DirBehaviourPair {
 		if e.RequestsBelow() {
 			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_MOVING}
 		} else if e.RequestsHere() {
-			return DirBehaviourPair{DIR_UP, BEHAVIOUR_DOOR_OPEN}
+			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_DOOR_OPEN}
 		} else if e.RequestsAbove() {
 			return DirBehaviourPair{DIR_UP, BEHAVIOUR_MOVING}
 		} else {
@@ -99,6 +99,7 @@ func RequestsClearAtCurrentFloor(e Elevator) Elevator {
 		for btn := 0; btn < NUM_BUTTONS; btn++ {
 			e.requests[e.floor][btn] = false
 		}
+
 	case CV_InDirn:
 		e.requests[e.floor][BTN_HALLCAB] = false
 		switch e.direction {
@@ -108,7 +109,7 @@ func RequestsClearAtCurrentFloor(e Elevator) Elevator {
 			}
 			e.requests[e.floor][BTN_HALLUP] = false
 		case DIR_DOWN:
-			if e.RequestsBelow() && e.requests[e.floor][BTN_HALLDOWN] {
+			if !e.RequestsBelow() && !e.requests[e.floor][BTN_HALLDOWN] {
 				e.requests[e.floor][BTN_HALLUP] = false
 			}
 			e.requests[e.floor][BTN_HALLDOWN] = false
