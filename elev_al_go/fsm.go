@@ -13,7 +13,6 @@ var (
 
 func MakeFsm() {
 	elevator = MakeUninitializedelevator()
-	elevator.config.clearRequestVariation = CV_InDirn
 	FsmOnInitBetweenFloors()
 }
 

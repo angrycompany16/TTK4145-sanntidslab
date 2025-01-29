@@ -135,7 +135,7 @@ func MakeUninitializedelevator() Elevator {
 		direction: DIR_STOP,
 		behaviour: BEHAVIOUR_IDLE,
 		config: config{
-			clearRequestVariation: CV_All,
+			clearRequestVariation: CV_InDirn,
 			doorOpenDuration:      3.0,
 		},
 	}
