@@ -1,8 +1,8 @@
 package elevalgo
 
-func (e *Elevator) RequestsAbove() bool {
-	for f := e.floor + 1; f < NUM_FLOORS; f++ {
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
+func (e *elevator) requestsAbove() bool {
+	for f := e.floor + 1; f < NumFloors; f++ {
+		for btn := 0; btn < NumButtons; btn++ {
 			if e.requests[f][btn] {
 				return true
 			}
@@ -11,9 +11,9 @@ func (e *Elevator) RequestsAbove() bool {
 	return false
 }
 
-func (e *Elevator) RequestsBelow() bool {
+func (e *elevator) requestsBelow() bool {
 	for f := 0; f < e.floor; f++ {
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
+		for btn := 0; btn < NumButtons; btn++ {
 			if e.requests[f][btn] {
 				return true
 			}
@@ -22,8 +22,8 @@ func (e *Elevator) RequestsBelow() bool {
 	return false
 }
 
-func (e *Elevator) RequestsHere() bool {
-	for btn := 0; btn < NUM_BUTTONS; btn++ {
+func (e *elevator) requestsHere() bool {
+	for btn := 0; btn < NumButtons; btn++ {
 		if e.requests[e.floor][btn] {
 			return true
 		}
@@ -31,91 +31,91 @@ func (e *Elevator) RequestsHere() bool {
 	return false
 }
 
-func (e *Elevator) RequestsChooseDirection() DirBehaviourPair {
+func (e *elevator) chooseDirection() dirBehaviourPair {
 	switch e.direction {
-	case DIR_UP:
-		if e.RequestsAbove() {
-			return DirBehaviourPair{DIR_UP, BEHAVIOUR_MOVING}
-		} else if e.RequestsHere() {
-			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_DOOR_OPEN}
-		} else if e.RequestsBelow() {
-			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_MOVING}
+	case up:
+		if e.requestsAbove() {
+			return dirBehaviourPair{up, moving}
+		} else if e.requestsHere() {
+			return dirBehaviourPair{stop, doorOpen}
+		} else if e.requestsBelow() {
+			return dirBehaviourPair{down, moving}
 		} else {
-			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_IDLE}
+			return dirBehaviourPair{stop, idle}
 		}
-	case DIR_DOWN:
-		if e.RequestsBelow() {
-			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_MOVING}
-		} else if e.RequestsHere() {
-			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_DOOR_OPEN}
-		} else if e.RequestsAbove() {
-			return DirBehaviourPair{DIR_UP, BEHAVIOUR_MOVING}
+	case down:
+		if e.requestsBelow() {
+			return dirBehaviourPair{down, moving}
+		} else if e.requestsHere() {
+			return dirBehaviourPair{stop, doorOpen}
+		} else if e.requestsAbove() {
+			return dirBehaviourPair{up, moving}
 		} else {
-			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_IDLE}
+			return dirBehaviourPair{stop, idle}
 		}
-	case DIR_STOP: // there should only be one request in the Stop case. Checking up or down first is arbitrary.
-		if e.RequestsHere() {
-			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_DOOR_OPEN}
-		} else if e.RequestsAbove() {
-			return DirBehaviourPair{DIR_UP, BEHAVIOUR_MOVING}
-		} else if e.RequestsBelow() {
-			return DirBehaviourPair{DIR_DOWN, BEHAVIOUR_MOVING}
+	case stop: // there should only be one request in the Stop case. Checking up or down first is arbitrary.
+		if e.requestsHere() {
+			return dirBehaviourPair{stop, doorOpen}
+		} else if e.requestsAbove() {
+			return dirBehaviourPair{up, moving}
+		} else if e.requestsBelow() {
+			return dirBehaviourPair{down, moving}
 		} else {
-			return DirBehaviourPair{DIR_STOP, BEHAVIOUR_IDLE}
+			return dirBehaviourPair{stop, idle}
 		}
 	default:
-		return DirBehaviourPair{DIR_STOP, BEHAVIOUR_IDLE}
+		return dirBehaviourPair{stop, idle}
 	}
 }
 
-func (e *Elevator) RequestsShouldStop() bool {
+func (e *elevator) shouldStop() bool {
 	switch e.direction {
-	case DIR_DOWN:
-		return e.requests[e.floor][BTN_HALLDOWN] || e.requests[e.floor][BTN_HALLCAB] || !e.RequestsBelow()
-	case DIR_UP:
-		return e.requests[e.floor][BTN_HALLUP] || e.requests[e.floor][BTN_HALLCAB] || !e.RequestsAbove()
+	case down:
+		return e.requests[e.floor][hallDown] || e.requests[e.floor][hallCab] || !e.requestsBelow()
+	case up:
+		return e.requests[e.floor][hallUp] || e.requests[e.floor][hallCab] || !e.requestsAbove()
 	default:
 		return true
 	}
 }
 
-func (e *Elevator) RequestsShouldClearImmediately(buttonFloor int, buttonType Button) bool {
-	switch e.config.clearRequestVariation {
-	case CV_All:
+func (e *elevator) shouldClearImmediately(buttonFloor int, buttonType Button) bool {
+	switch e.config.ClearRequestVariant {
+	case clearAll:
 		return e.floor == buttonFloor
-	case CV_InDirn:
-		return e.floor == buttonFloor && ((e.direction == DIR_UP && buttonType == BTN_HALLUP) ||
-			(e.direction == DIR_DOWN && buttonType == BTN_HALLDOWN) ||
-			e.direction == DIR_STOP ||
-			buttonType == BTN_HALLCAB)
+	case clearSameDir:
+		return e.floor == buttonFloor && ((e.direction == up && buttonType == hallUp) ||
+			(e.direction == down && buttonType == hallDown) ||
+			e.direction == stop ||
+			buttonType == hallCab)
 	default:
 		return false
 	}
 }
 
-func RequestsClearAtCurrentFloor(e Elevator) Elevator {
-	switch e.config.clearRequestVariation {
-	case CV_All:
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
+func clearAtCurrentFloor(e elevator) elevator {
+	switch e.config.ClearRequestVariant {
+	case clearAll:
+		for btn := 0; btn < NumButtons; btn++ {
 			e.requests[e.floor][btn] = false
 		}
 
-	case CV_InDirn:
-		e.requests[e.floor][BTN_HALLCAB] = false
+	case clearSameDir:
+		e.requests[e.floor][hallCab] = false
 		switch e.direction {
-		case DIR_UP:
-			if !e.RequestsAbove() && !e.requests[e.floor][BTN_HALLUP] {
-				e.requests[e.floor][BTN_HALLDOWN] = false
+		case up:
+			if !e.requestsAbove() && !e.requests[e.floor][hallUp] {
+				e.requests[e.floor][hallDown] = false
 			}
-			e.requests[e.floor][BTN_HALLUP] = false
-		case DIR_DOWN:
-			if !e.RequestsBelow() && !e.requests[e.floor][BTN_HALLDOWN] {
-				e.requests[e.floor][BTN_HALLUP] = false
+			e.requests[e.floor][hallUp] = false
+		case down:
+			if !e.requestsBelow() && !e.requests[e.floor][hallDown] {
+				e.requests[e.floor][hallUp] = false
 			}
-			e.requests[e.floor][BTN_HALLDOWN] = false
+			e.requests[e.floor][hallDown] = false
 		default:
-			e.requests[e.floor][BTN_HALLUP] = false
-			e.requests[e.floor][BTN_HALLDOWN] = false
+			e.requests[e.floor][hallUp] = false
+			e.requests[e.floor][hallDown] = false
 		}
 	}
 

@@ -1,2 +1,4 @@
 github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9 h1:kiCP9CQ4LQ7T7Y0rEZfTxngz/RBae1HbNNuiir4+MMg=
 github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9/go.mod h1:cPWgatV1wodJklk3N/0yuIiDGQ5bHkGIsHfgrktM6x0=
+github.com/go-yaml/yaml v2.1.0+incompatible h1:RYi2hDdss1u4YE7GwixGzWwVo47T8UQwnTLB6vQiq+o=
+github.com/go-yaml/yaml v2.1.0+incompatible/go.mod h1:w2MrLa16VYP0jy6N7M5kHaCkaLENm+P+Tv+MfurjSw0=

@@ -3,22 +3,24 @@ package elevalgo
 import (
 	"fmt"
 	"runtime"
+	timer "sanntidslab/elev_al_go/timer"
+	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
 var (
-	elevator Elevator
+	runningElevator elevator
 )
 
-func MakeFsm() {
-	elevator = MakeUninitializedelevator()
-	FsmOnInitBetweenFloors()
+func InitFsm() {
+	runningElevator = MakeUninitializedelevator()
+	initBetweenFloors()
 }
 
-func SetAllLights(elevator Elevator) {
-	for floor := 0; floor < NUM_FLOORS; floor++ {
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
+func setAllLights(elevator elevator) {
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
 			if floor == 4 {
 				fmt.Println("floor ", floor)
 				fmt.Println("button ", btn)
@@ -28,112 +30,116 @@ func SetAllLights(elevator Elevator) {
 	}
 }
 
-func FsmOnInitBetweenFloors() {
+func initBetweenFloors() {
 	elevio.SetMotorDirection(elevio.MD_Down)
-	elevator.direction = DIR_DOWN
-	elevator.behaviour = BEHAVIOUR_MOVING
+	runningElevator.direction = down
+	runningElevator.behaviour = moving
 }
 
-func FsmOnRequestButtonPress(btn_floor int, btn_type Button) {
+func RequestButtonPressed(buttonFloor int, buttonType Button) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, btn_floor, ElevioButtonToString(btn_type))
-	elevator.print()
+	fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
+	runningElevator.print()
 
-	switch elevator.behaviour {
-	case BEHAVIOUR_DOOR_OPEN:
-		if elevator.RequestsShouldClearImmediately(btn_floor, btn_type) {
-			StartTimer()
+	switch runningElevator.behaviour {
+	case doorOpen:
+		if runningElevator.shouldClearImmediately(buttonFloor, buttonType) {
+			timer.StartTimer()
 		} else {
-			elevator.requests[btn_floor][btn_type] = true
+			runningElevator.requests[buttonFloor][buttonType] = true
 		}
-	case BEHAVIOUR_MOVING:
-		elevator.requests[btn_floor][btn_type] = true
-	case BEHAVIOUR_IDLE:
-		elevator.requests[btn_floor][btn_type] = true
-		pair := elevator.RequestsChooseDirection()
-		elevator.direction = pair.dir
-		elevator.behaviour = pair.behaviour
+	case moving:
+		runningElevator.requests[buttonFloor][buttonType] = true
+	case idle:
+		runningElevator.requests[buttonFloor][buttonType] = true
+		pair := runningElevator.chooseDirection()
+		runningElevator.direction = pair.dir
+		runningElevator.behaviour = pair.behaviour
 		switch pair.behaviour {
-		case BEHAVIOUR_DOOR_OPEN:
+		case doorOpen:
 			elevio.SetDoorOpenLamp(true)
-			StartTimer()
-			elevator = RequestsClearAtCurrentFloor(elevator) // Ask: Why make this a pure function?
-		case BEHAVIOUR_MOVING:
-			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
+			timer.StartTimer()
+			runningElevator = clearAtCurrentFloor(runningElevator)
+		case moving:
+			elevio.SetMotorDirection(elevio.MotorDirection(runningElevator.direction))
 		}
 	}
 
-	SetAllLights(elevator)
+	setAllLights(runningElevator)
 
 	fmt.Printf("\nNew state:\n")
-	elevator.print()
+	runningElevator.print()
 }
 
-func FsmOnFloorArrival(newFloor int) {
+func OnFloorArrival(newFloor int) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
 	fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
-	elevator.print()
+	runningElevator.print()
 
-	elevator.floor = newFloor
+	runningElevator.floor = newFloor
 
-	elevio.SetFloorIndicator(elevator.floor)
+	elevio.SetFloorIndicator(runningElevator.floor)
 
-	switch elevator.behaviour {
-	case BEHAVIOUR_MOVING:
-		if elevator.RequestsShouldStop() {
+	switch runningElevator.behaviour {
+	case moving:
+		if runningElevator.shouldStop() {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
-			elevator = RequestsClearAtCurrentFloor(elevator)
-			StartTimer()
-			SetAllLights(elevator)
-			elevator.behaviour = BEHAVIOUR_DOOR_OPEN
+			runningElevator = clearAtCurrentFloor(runningElevator)
+			timer.StartTimer()
+			setAllLights(runningElevator)
+			runningElevator.behaviour = doorOpen
 		}
 	}
 
 	fmt.Printf("\nNew state:\n")
-	elevator.print()
+	runningElevator.print()
 }
 
-func FsmOnDoorTimeout() {
+func OnDoorTimeout() {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
 	fmt.Printf("\n\n%s()\n", frame.Function)
-	elevator.print()
+	runningElevator.print()
 
-	switch elevator.behaviour {
-	case BEHAVIOUR_DOOR_OPEN:
-		pair := elevator.RequestsChooseDirection()
-		elevator.direction = pair.dir
-		elevator.behaviour = pair.behaviour
+	switch runningElevator.behaviour {
+	case doorOpen:
+		pair := runningElevator.chooseDirection()
+		runningElevator.direction = pair.dir
+		runningElevator.behaviour = pair.behaviour
 
-		switch elevator.behaviour {
-		case BEHAVIOUR_DOOR_OPEN:
-			StartTimer()
-			elevator = RequestsClearAtCurrentFloor(elevator)
-			SetAllLights(elevator)
-		case BEHAVIOUR_MOVING, BEHAVIOUR_IDLE:
+		switch runningElevator.behaviour {
+		case doorOpen:
+			timer.StartTimer()
+			runningElevator = clearAtCurrentFloor(runningElevator)
+			setAllLights(runningElevator)
+		case moving, idle:
 			elevio.SetDoorOpenLamp(false)
-			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
+			elevio.SetMotorDirection(elevio.MotorDirection(runningElevator.direction))
 		}
 	}
 
 	fmt.Printf("\nNew state:\n")
-	elevator.print()
+	runningElevator.print()
 }
 
 func DoorObstructed() {
-	if elevator.behaviour == BEHAVIOUR_DOOR_OPEN {
-		StartTimer()
+	if runningElevator.behaviour == doorOpen {
+		timer.StartTimer()
 	}
+}
+
+func GetTimeout() time.Duration {
+	return runningElevator.config.DoorOpenDuration
 }

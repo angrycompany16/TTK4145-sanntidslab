@@ -2,119 +2,126 @@ package elevalgo
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path"
 	"time"
-)
 
-type ElevatorBehaviour int
+	"github.com/go-yaml/yaml"
+)
 
 const (
-	BEHAVIOUR_IDLE = iota
-	BEHAVIOUR_DOOR_OPEN
-	BEHAVIOUR_MOVING
+	NumFloors  = 4
+	NumButtons = 3
 )
 
-type ClearRequestVariant int
+var ConfigPath = path.Join("elev_al_go", "elevator_config.yaml")
+
+type elevatorBehaviour int
+
+const (
+	idle elevatorBehaviour = iota
+	doorOpen
+	moving
+)
+
+type clearRequestVariant int
 
 const (
 	// Assume everyone waiting for the elevator gets on the elevator, even if
 	// they will be traveling in the "wrong" direction for a while
-	CV_All = iota
+	clearAll clearRequestVariant = iota
 
 	// Assume that only those that want to travel in the current direction
 	// enter the elevator, and keep waiting outside otherwise
-	CV_InDirn
+	clearSameDir
 )
 
-type Elevator struct {
-	floor     int
-	direction Dir
-	requests  [NUM_FLOORS][NUM_BUTTONS]bool
-	behaviour ElevatorBehaviour
-	config    config
-}
-
-type config struct {
-	clearRequestVariation ClearRequestVariant
-	doorOpenDuration      time.Duration
-}
-
-type DirBehaviourPair struct {
-	dir       Dir
-	behaviour ElevatorBehaviour
-}
+type direction int
 
 const (
-	NUM_FLOORS  = 4
-	NUM_BUTTONS = 3
-)
-
-type Dir int
-
-const (
-	DIR_DOWN Dir = iota - 1
-	DIR_STOP
-	DIR_UP
+	down direction = iota - 1
+	stop
+	up
 )
 
 type Button int
 
 const (
-	BTN_HALLUP Button = iota
-	BTN_HALLDOWN
-	BTN_HALLCAB
+	hallUp Button = iota
+	hallDown
+	hallCab
 )
 
-func ElevioDirToString(d Dir) string {
+type elevator struct {
+	floor     int
+	direction direction
+	requests  [NumFloors][NumButtons]bool
+	behaviour elevatorBehaviour
+	config    config
+}
+
+type config struct {
+	ClearRequestVariant clearRequestVariant `yaml:"ClearRequestVariant"`
+	DoorOpenDuration    time.Duration       `yaml:"DoorOpenDuration"`
+}
+
+type dirBehaviourPair struct {
+	dir       direction
+	behaviour elevatorBehaviour
+}
+
+func dirToString(d direction) string {
 	switch d {
-	case DIR_UP:
+	case up:
 		return "D_Up"
-	case DIR_DOWN:
+	case down:
 		return "D_Down"
-	case DIR_STOP:
+	case stop:
 		return "D_Stop"
 	default:
 		return "D_UNDEFINED"
 	}
 }
 
-func ElevioButtonToString(b Button) string {
+func buttonToString(b Button) string {
 	switch b {
-	case BTN_HALLUP:
+	case hallUp:
 		return "B_HallUp"
-	case BTN_HALLDOWN:
+	case hallDown:
 		return "B_HallDown"
-	case BTN_HALLCAB:
+	case hallCab:
 		return "B_Cab"
 	default:
 		return "B_UNDEFINED"
 	}
 }
 
-func EbToString(behaviour ElevatorBehaviour) string {
+func behaviourToString(behaviour elevatorBehaviour) string {
 	switch behaviour {
-	case BEHAVIOUR_IDLE:
+	case idle:
 		return "EB_Idle"
-	case BEHAVIOUR_DOOR_OPEN:
+	case doorOpen:
 		return "EB_DoorOpen"
-	case BEHAVIOUR_MOVING:
+	case moving:
 		return "EB_Moving"
 	default:
 		return "EB_UNDEFINED"
 	}
 }
 
-func (e *Elevator) print() {
+func (e *elevator) print() {
 	fmt.Println("  +--------------------+")
 	fmt.Printf("  |floor = %-2d          |\n", e.floor)
-	fmt.Printf("  |dirn  = %-12.12s|\n", ElevioDirToString(e.direction))
-	fmt.Printf("  |behav = %-12.12s|\n", EbToString(e.behaviour))
+	fmt.Printf("  |dirn  = %-12.12s|\n", dirToString(e.direction))
+	fmt.Printf("  |behav = %-12.12s|\n", behaviourToString(e.behaviour))
 
 	fmt.Println("  +--------------------+")
 	fmt.Println("  |  | up  | dn  | cab |")
-	for f := NUM_FLOORS - 1; f >= 0; f-- {
+	for f := NumFloors - 1; f >= 0; f-- {
 		fmt.Printf("  | %d", f)
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
-			if (f == NUM_FLOORS-1 && btn == int(BTN_HALLUP)) || (f == 0 && btn == int(BTN_HALLDOWN)) {
+		for btn := 0; btn < NumButtons; btn++ {
+			if (f == NumFloors-1 && btn == int(hallUp)) || (f == 0 && btn == int(hallDown)) {
 				fmt.Print("|     ")
 			} else {
 				if e.requests[f][btn] {
@@ -129,14 +136,35 @@ func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
 }
 
-func MakeUninitializedelevator() Elevator {
-	return Elevator{
+func loadConfig() (config, error) {
+	c := config{}
+	file, err := os.Open(ConfigPath)
+	if err != nil {
+		fmt.Println("Error reading file")
+		return c, err
+	}
+	defer file.Close()
+
+	err = yaml.NewDecoder(file).Decode(&c)
+	if err != nil {
+		fmt.Println("Error decoding file")
+		return c, err
+	}
+	return c, nil
+}
+
+func MakeUninitializedelevator() elevator {
+	config, err := loadConfig()
+	if err != nil {
+		// TODO: Retry here instead of just crashing
+		// This is not very fault tolerant
+		log.Fatal("Failed to initialize elevator from .yaml file")
+	}
+
+	return elevator{
 		floor:     -1,
-		direction: DIR_STOP,
-		behaviour: BEHAVIOUR_IDLE,
-		config: config{
-			clearRequestVariation: CV_InDirn,
-			doorOpenDuration:      3.0,
-		},
+		direction: stop,
+		behaviour: idle,
+		config:    config,
 	}
 }
