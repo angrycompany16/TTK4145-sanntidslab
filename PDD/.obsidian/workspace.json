@@ -15,16 +15,34 @@
               "state": {
                 "file": "Sanntid Peer2Peer forslag.canvas",
                 "viewState": {
-                  "x": 2820.2015204400145,
-                  "y": 406.7528093320898,
+                  "x": 1825.88404356581,
+                  "y": -117.8870681460586,
                   "zoom": -0.029627206346824496
                 }
               },
               "icon": "lucide-layout-dashboard",
               "title": "Sanntid Peer2Peer forslag"
             }
+          },
+          {
+            "id": "54df57148674428c",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "Sanntid Peer2Peer forslag.canvas",
+                "viewState": {
+                  "x": 2809.0242586520403,
+                  "y": 4454.889715850456,
+                  "zoom": 0.3125520952329685
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "Sanntid Peer2Peer forslag"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -165,10 +183,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "6f148e28f2dbc723",
+  "active": "54df57148674428c",
   "lastOpenFiles": [
-    "SAnntid heis distributed.md",
+    "test.md",
     "Sanntid Peer2Peer forslag.canvas",
+    "SAnntid heis distributed.md",
     "Welcome.md"
   ]
 }
