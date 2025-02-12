@@ -8,41 +8,23 @@
         "type": "tabs",
         "children": [
           {
-            "id": "6f148e28f2dbc723",
-            "type": "leaf",
-            "state": {
-              "type": "canvas",
-              "state": {
-                "file": "Sanntid Peer2Peer forslag.canvas",
-                "viewState": {
-                  "x": 1825.88404356581,
-                  "y": -117.8870681460586,
-                  "zoom": -0.029627206346824496
-                }
-              },
-              "icon": "lucide-layout-dashboard",
-              "title": "Sanntid Peer2Peer forslag"
-            }
-          },
-          {
             "id": "54df57148674428c",
             "type": "leaf",
             "state": {
               "type": "canvas",
               "state": {
-                "file": "Sanntid Peer2Peer forslag.canvas",
+                "file": "Sanntid Peer2Peer updated.canvas",
                 "viewState": {
-                  "x": 2809.0242586520403,
-                  "y": 4454.889715850456,
-                  "zoom": 0.3125520952329685
+                  "x": 4830.906866409216,
+                  "y": 5065.587676119998,
+                  "zoom": 0.008717219034830335
                 }
               },
               "icon": "lucide-layout-dashboard",
-              "title": "Sanntid Peer2Peer forslag"
+              "title": "Sanntid Peer2Peer updated"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -61,7 +43,8 @@
             "state": {
               "type": "file-explorer",
               "state": {
-                "sortOrder": "alphabetical"
+                "sortOrder": "alphabetical",
+                "autoReveal": false
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -185,8 +168,10 @@
   },
   "active": "54df57148674428c",
   "lastOpenFiles": [
-    "test.md",
     "Sanntid Peer2Peer forslag.canvas",
+    "Sanntid Peer2Peer updated.canvas",
+    "Untitled.md",
+    "test.md",
     "SAnntid heis distributed.md",
     "Welcome.md"
   ]
