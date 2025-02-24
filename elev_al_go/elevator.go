@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/angrycompany16/driver-go/elevio"
 	"github.com/go-yaml/yaml"
 )
 
@@ -45,15 +46,7 @@ const (
 	up
 )
 
-type Button int
-
-const (
-	hallUp Button = iota
-	hallDown
-	hallCab
-)
-
-type elevator struct {
+type Elevator struct {
 	floor     int
 	direction direction
 	requests  [NumFloors][NumButtons]bool
@@ -84,13 +77,14 @@ func dirToString(d direction) string {
 	}
 }
 
-func buttonToString(b Button) string {
+// TODO: Rewrite the string fcns
+func buttonToString(b elevio.ButtonType) string {
 	switch b {
-	case hallUp:
+	case elevio.BT_HallUp:
 		return "B_HallUp"
-	case hallDown:
+	case elevio.BT_HallDown:
 		return "B_HallDown"
-	case hallCab:
+	case elevio.BT_Cab:
 		return "B_Cab"
 	default:
 		return "B_UNDEFINED"
@@ -110,7 +104,7 @@ func behaviourToString(behaviour elevatorBehaviour) string {
 	}
 }
 
-func (e *elevator) print() {
+func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
 	fmt.Printf("  |floor = %-2d          |\n", e.floor)
 	fmt.Printf("  |dirn  = %-12.12s|\n", dirToString(e.direction))
@@ -121,7 +115,7 @@ func (e *elevator) print() {
 	for f := NumFloors - 1; f >= 0; f-- {
 		fmt.Printf("  | %d", f)
 		for btn := 0; btn < NumButtons; btn++ {
-			if (f == NumFloors-1 && btn == int(hallUp)) || (f == 0 && btn == int(hallDown)) {
+			if (f == NumFloors-1 && btn == int(elevio.BT_HallUp)) || (f == 0 && btn == int(elevio.BT_HallDown)) {
 				fmt.Print("|     ")
 			} else {
 				if e.requests[f][btn] {
@@ -153,7 +147,7 @@ func loadConfig() (config, error) {
 	return c, nil
 }
 
-func MakeUninitializedelevator() elevator {
+func MakeUninitializedelevator() Elevator {
 	config, err := loadConfig()
 	if err != nil {
 		// TODO: Retry here instead of just crashing
@@ -161,7 +155,7 @@ func MakeUninitializedelevator() elevator {
 		log.Fatal("Failed to initialize elevator from .yaml file")
 	}
 
-	return elevator{
+	return Elevator{
 		floor:     -1,
 		direction: stop,
 		behaviour: idle,

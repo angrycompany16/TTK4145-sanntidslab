@@ -15,16 +15,34 @@
               "state": {
                 "file": "Sanntid Peer2Peer updated.canvas",
                 "viewState": {
-                  "x": 4830.906866409216,
-                  "y": 5065.587676119998,
-                  "zoom": 0.008717219034830335
+                  "x": 1105.4410202240992,
+                  "y": 2923.077925507951,
+                  "zoom": -0.02070709632582563
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "Sanntid Peer2Peer updated"
+            }
+          },
+          {
+            "id": "ef0a12ed72214f1f",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "Sanntid Peer2Peer updated.canvas",
+                "viewState": {
+                  "x": 6108.771085705724,
+                  "y": 4949.870780184065,
+                  "zoom": -0.6260035761867686
                 }
               },
               "icon": "lucide-layout-dashboard",
               "title": "Sanntid Peer2Peer updated"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -166,7 +184,7 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "54df57148674428c",
+  "active": "ef0a12ed72214f1f",
   "lastOpenFiles": [
     "Sanntid Peer2Peer forslag.canvas",
     "Sanntid Peer2Peer updated.canvas",

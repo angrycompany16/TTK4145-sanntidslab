@@ -1,6 +1,8 @@
 package elevalgo
 
-func (e *elevator) requestsAbove() bool {
+import "github.com/angrycompany16/driver-go/elevio"
+
+func (e *Elevator) requestsAbove() bool {
 	for f := e.floor + 1; f < NumFloors; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
 			if e.requests[f][btn] {
@@ -11,7 +13,7 @@ func (e *elevator) requestsAbove() bool {
 	return false
 }
 
-func (e *elevator) requestsBelow() bool {
+func (e *Elevator) requestsBelow() bool {
 	for f := 0; f < e.floor; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
 			if e.requests[f][btn] {
@@ -22,7 +24,7 @@ func (e *elevator) requestsBelow() bool {
 	return false
 }
 
-func (e *elevator) requestsHere() bool {
+func (e *Elevator) requestsHere() bool {
 	for btn := 0; btn < NumButtons; btn++ {
 		if e.requests[e.floor][btn] {
 			return true
@@ -31,7 +33,7 @@ func (e *elevator) requestsHere() bool {
 	return false
 }
 
-func (e *elevator) chooseDirection() dirBehaviourPair {
+func (e *Elevator) chooseDirection() dirBehaviourPair {
 	switch e.direction {
 	case up:
 		if e.requestsAbove() {
@@ -68,32 +70,32 @@ func (e *elevator) chooseDirection() dirBehaviourPair {
 	}
 }
 
-func (e *elevator) shouldStop() bool {
+func (e *Elevator) shouldStop() bool {
 	switch e.direction {
 	case down:
-		return e.requests[e.floor][hallDown] || e.requests[e.floor][hallCab] || !e.requestsBelow()
+		return e.requests[e.floor][elevio.BT_HallDown] || e.requests[e.floor][elevio.BT_Cab] || !e.requestsBelow()
 	case up:
-		return e.requests[e.floor][hallUp] || e.requests[e.floor][hallCab] || !e.requestsAbove()
+		return e.requests[e.floor][elevio.BT_HallUp] || e.requests[e.floor][elevio.BT_Cab] || !e.requestsAbove()
 	default:
 		return true
 	}
 }
 
-func (e *elevator) shouldClearImmediately(buttonFloor int, buttonType Button) bool {
+func (e *Elevator) shouldClearImmediately(buttonFloor int, buttonType elevio.ButtonType) bool {
 	switch e.config.ClearRequestVariant {
 	case clearAll:
 		return e.floor == buttonFloor
 	case clearSameDir:
-		return e.floor == buttonFloor && ((e.direction == up && buttonType == hallUp) ||
-			(e.direction == down && buttonType == hallDown) ||
+		return e.floor == buttonFloor && ((e.direction == up && buttonType == elevio.BT_HallUp) ||
+			(e.direction == down && buttonType == elevio.BT_HallDown) ||
 			e.direction == stop ||
-			buttonType == hallCab)
+			buttonType == elevio.BT_Cab)
 	default:
 		return false
 	}
 }
 
-func clearAtCurrentFloor(e elevator) elevator {
+func clearAtCurrentFloor(e Elevator) Elevator {
 	switch e.config.ClearRequestVariant {
 	case clearAll:
 		for btn := 0; btn < NumButtons; btn++ {
@@ -101,21 +103,21 @@ func clearAtCurrentFloor(e elevator) elevator {
 		}
 
 	case clearSameDir:
-		e.requests[e.floor][hallCab] = false
+		e.requests[e.floor][elevio.BT_Cab] = false
 		switch e.direction {
 		case up:
-			if !e.requestsAbove() && !e.requests[e.floor][hallUp] {
-				e.requests[e.floor][hallDown] = false
+			if !e.requestsAbove() && !e.requests[e.floor][elevio.BT_HallUp] {
+				e.requests[e.floor][elevio.BT_HallDown] = false
 			}
-			e.requests[e.floor][hallUp] = false
+			e.requests[e.floor][elevio.BT_HallUp] = false
 		case down:
-			if !e.requestsBelow() && !e.requests[e.floor][hallDown] {
-				e.requests[e.floor][hallUp] = false
+			if !e.requestsBelow() && !e.requests[e.floor][elevio.BT_HallDown] {
+				e.requests[e.floor][elevio.BT_HallUp] = false
 			}
-			e.requests[e.floor][hallDown] = false
+			e.requests[e.floor][elevio.BT_HallDown] = false
 		default:
-			e.requests[e.floor][hallUp] = false
-			e.requests[e.floor][hallDown] = false
+			e.requests[e.floor][elevio.BT_HallUp] = false
+			e.requests[e.floor][elevio.BT_HallDown] = false
 		}
 	}
 

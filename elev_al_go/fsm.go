@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	runningElevator elevator
+	ThisElevator Elevator
 )
 
 func InitFsm() {
-	runningElevator = MakeUninitializedelevator()
+	ThisElevator = MakeUninitializedelevator()
 	initBetweenFloors()
 }
 
-func setAllLights(elevator elevator) {
+func setAllLights(elevator Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
 			if floor == 4 {
@@ -32,47 +32,47 @@ func setAllLights(elevator elevator) {
 
 func initBetweenFloors() {
 	elevio.SetMotorDirection(elevio.MD_Down)
-	runningElevator.direction = down
-	runningElevator.behaviour = moving
+	ThisElevator.direction = down
+	ThisElevator.behaviour = moving
 }
 
-func RequestButtonPressed(buttonFloor int, buttonType Button) {
+func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
 	fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
-	runningElevator.print()
+	ThisElevator.print()
 
-	switch runningElevator.behaviour {
+	switch ThisElevator.behaviour {
 	case doorOpen:
-		if runningElevator.shouldClearImmediately(buttonFloor, buttonType) {
+		if ThisElevator.shouldClearImmediately(buttonFloor, buttonType) {
 			timer.StartTimer()
 		} else {
-			runningElevator.requests[buttonFloor][buttonType] = true
+			ThisElevator.requests[buttonFloor][buttonType] = true
 		}
 	case moving:
-		runningElevator.requests[buttonFloor][buttonType] = true
+		ThisElevator.requests[buttonFloor][buttonType] = true
 	case idle:
-		runningElevator.requests[buttonFloor][buttonType] = true
-		pair := runningElevator.chooseDirection()
-		runningElevator.direction = pair.dir
-		runningElevator.behaviour = pair.behaviour
+		ThisElevator.requests[buttonFloor][buttonType] = true
+		pair := ThisElevator.chooseDirection()
+		ThisElevator.direction = pair.dir
+		ThisElevator.behaviour = pair.behaviour
 		switch pair.behaviour {
 		case doorOpen:
 			elevio.SetDoorOpenLamp(true)
 			timer.StartTimer()
-			runningElevator = clearAtCurrentFloor(runningElevator)
+			ThisElevator = clearAtCurrentFloor(ThisElevator)
 		case moving:
-			elevio.SetMotorDirection(elevio.MotorDirection(runningElevator.direction))
+			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
 		}
 	}
 
-	setAllLights(runningElevator)
+	setAllLights(ThisElevator)
 
 	fmt.Printf("\nNew state:\n")
-	runningElevator.print()
+	ThisElevator.print()
 }
 
 func OnFloorArrival(newFloor int) {
@@ -82,26 +82,26 @@ func OnFloorArrival(newFloor int) {
 	frame, _ := frames.Next()
 
 	fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
-	runningElevator.print()
+	ThisElevator.print()
 
-	runningElevator.floor = newFloor
+	ThisElevator.floor = newFloor
 
-	elevio.SetFloorIndicator(runningElevator.floor)
+	elevio.SetFloorIndicator(ThisElevator.floor)
 
-	switch runningElevator.behaviour {
+	switch ThisElevator.behaviour {
 	case moving:
-		if runningElevator.shouldStop() {
+		if ThisElevator.shouldStop() {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
-			runningElevator = clearAtCurrentFloor(runningElevator)
+			ThisElevator = clearAtCurrentFloor(ThisElevator)
 			timer.StartTimer()
-			setAllLights(runningElevator)
-			runningElevator.behaviour = doorOpen
+			setAllLights(ThisElevator)
+			ThisElevator.behaviour = doorOpen
 		}
 	}
 
 	fmt.Printf("\nNew state:\n")
-	runningElevator.print()
+	ThisElevator.print()
 }
 
 func OnDoorTimeout() {
@@ -111,35 +111,35 @@ func OnDoorTimeout() {
 	frame, _ := frames.Next()
 
 	fmt.Printf("\n\n%s()\n", frame.Function)
-	runningElevator.print()
+	ThisElevator.print()
 
-	switch runningElevator.behaviour {
+	switch ThisElevator.behaviour {
 	case doorOpen:
-		pair := runningElevator.chooseDirection()
-		runningElevator.direction = pair.dir
-		runningElevator.behaviour = pair.behaviour
+		pair := ThisElevator.chooseDirection()
+		ThisElevator.direction = pair.dir
+		ThisElevator.behaviour = pair.behaviour
 
-		switch runningElevator.behaviour {
+		switch ThisElevator.behaviour {
 		case doorOpen:
 			timer.StartTimer()
-			runningElevator = clearAtCurrentFloor(runningElevator)
-			setAllLights(runningElevator)
+			ThisElevator = clearAtCurrentFloor(ThisElevator)
+			setAllLights(ThisElevator)
 		case moving, idle:
 			elevio.SetDoorOpenLamp(false)
-			elevio.SetMotorDirection(elevio.MotorDirection(runningElevator.direction))
+			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
 		}
 	}
 
 	fmt.Printf("\nNew state:\n")
-	runningElevator.print()
+	ThisElevator.print()
 }
 
 func DoorObstructed() {
-	if runningElevator.behaviour == doorOpen {
+	if ThisElevator.behaviour == doorOpen {
 		timer.StartTimer()
 	}
 }
 
 func GetTimeout() time.Duration {
-	return runningElevator.config.DoorOpenDuration
+	return ThisElevator.config.DoorOpenDuration
 }
