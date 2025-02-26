@@ -187,8 +187,8 @@ func (n *node) PipeListener(receiver chan ElevatorRequest) {
 		var request ElevatorRequest
 		n.listener.DecodeMsg(&msg, &request)
 		// if busy, take the request. Otherwise fuck off
-		// fmt.Printf("Received request on floor %d, buttontype %d from elevator %s\n", result.Floor, result.ButtonType, result.SenderId)
-		receiver <- request
+		fmt.Printf("Received request on floor %d, buttontype %d from elevator %s\n", request.Floor, request.ButtonType, request.SenderId)
+		// receiver <- request
 	}
 }
 

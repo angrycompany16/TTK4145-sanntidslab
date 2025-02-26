@@ -17,11 +17,6 @@ var (
 //
 //	if yes return yeah i am backup
 //	if not create the backup THEN send yeah i am backup
-// var (
-// 	ipaddress  string = "10.100.23.24"
-// 	password   string = "Sanntid15"
-// 	backupFlag        = "--node=backup"
-// )
 
 func CallBackup(TargetIP string, password string) (backupCreated bool) {
 

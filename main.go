@@ -31,6 +31,9 @@ func main() {
 	if mode == virtualMode {
 		elevator := elevalgo.MakeUninitializedelevator()
 		networking.InitElevator(&elevator)
+
+		incoming_requests := make(chan networking.ElevatorRequest)
+		go networking.ThisNode.PipeListener(incoming_requests)
 		for {
 			if networking.ThisNode.GetDebugInput() {
 				fmt.Println("Exiting")
