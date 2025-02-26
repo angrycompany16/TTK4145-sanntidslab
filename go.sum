@@ -1,5 +1,7 @@
 github.com/angrycompany16/Network-go v0.0.0-20250223213505-f57bf2a440dd h1:GwNgUh0bzaTZE8eWvKw1qlVF7m//HXTkshWy3Dju0tg=
 github.com/angrycompany16/Network-go v0.0.0-20250223213505-f57bf2a440dd/go.mod h1:tbjLbfIXR2ppuMGUPkceEu7a4aXKzwDgPY3HwmAdmko=
+github.com/angrycompany16/Network-go v0.0.0-20250226082444-a3377d0bfaee h1:gL2QafHMO9XjHzfpumKMsCtipX6vbQyT2leOARGK3AE=
+github.com/angrycompany16/Network-go v0.0.0-20250226082444-a3377d0bfaee/go.mod h1:tbjLbfIXR2ppuMGUPkceEu7a4aXKzwDgPY3HwmAdmko=
 github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9 h1:kiCP9CQ4LQ7T7Y0rEZfTxngz/RBae1HbNNuiir4+MMg=
 github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9/go.mod h1:cPWgatV1wodJklk3N/0yuIiDGQ5bHkGIsHfgrktM6x0=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

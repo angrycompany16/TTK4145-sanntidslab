@@ -70,6 +70,7 @@ func (n *node) timeout() {
 			if peer.lastSeen.Add(timeout).Before(time.Now()) {
 				fmt.Println("Removing peer:", peer)
 				peer.sender.QuitChan <- 1
+				n.listener.QuitChan <- peer.id
 				n.peers[i] = n.peers[len(n.peers)-1]
 				n.peers = n.peers[:len(n.peers)-1]
 			}
@@ -146,7 +147,7 @@ LifeSignals:
 			}
 		}
 
-		sender := transfer.NewSender(lifeSignal.ListenerAddr)
+		sender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
 
 		newPeer := newPeer(sender, lifeSignal.State, lifeSignal.SenderId)
 

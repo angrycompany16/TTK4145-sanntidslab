@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.4
 
 require (
-	github.com/angrycompany16/Network-go v0.0.0-20250223213505-f57bf2a440dd
+	github.com/angrycompany16/Network-go v0.0.0-20250226082444-a3377d0bfaee
 	github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9
 	github.com/go-yaml/yaml v2.1.0+incompatible
 )

@@ -7,15 +7,21 @@ import (
 )
 
 var (
-	ipaddress  string = "10.100.23.23"
+	ipaddress  string = "10.100.23.26"
 	password   string = "Sanntid15"
 	backupFlag        = "--node=backup"
 )
 
 // Plan :- someone asks node, can you be backup?
 // node checks if backup listener already created for that IP,
-//  if yes return yeah i am backup
-//  if not create the backup THEN send yeah i am backup
+//
+//	if yes return yeah i am backup
+//	if not create the backup THEN send yeah i am backup
+// var (
+// 	ipaddress  string = "10.100.23.24"
+// 	password   string = "Sanntid15"
+// 	backupFlag        = "--node=backup"
+// )
 
 func CallBackup(TargetIP string, password string) (backupCreated bool) {
 
