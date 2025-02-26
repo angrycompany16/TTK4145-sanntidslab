@@ -63,7 +63,7 @@ func CreateBackupListener(ipaddress string, hostIP string, password string) (cre
 
 // If fail try to remove host key, and generate a new one manually through SSH
 // needs testing, might be more convinient to generate a key once, and have it on all
-//  sanntidlab machines we intend to use
+// sanntidlab machines we intend to use
 
 func ReviveElevator(ipaddress string, password string) {
 

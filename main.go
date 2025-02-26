@@ -42,6 +42,7 @@ func main() {
 	drv_obstr := make(chan bool)
 	poll_timer := make(chan bool)
 	incoming_requests := make(chan networking.ElevatorRequest)
+	// lifesignals
 
 	go elevio.PollButtons(drv_buttons)
 	go elevio.PollFloorSensor(drv_floors)
@@ -51,6 +52,11 @@ func main() {
 
 	for {
 		select {
+		// case lifesignal := <-lifesignalchan:
+		// important lock
+		// Update backup ...
+		// Update network ...
+		// important unlock
 		case request := <-incoming_requests:
 			elevalgo.RequestButtonPressed(request.Floor, request.ButtonType)
 		case button := <-drv_buttons:

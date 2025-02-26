@@ -2,8 +2,8 @@ package backup
 
 import (
 	"fmt"
-	"net"
-	
+
+	"github.com/angrycompany16/Network-go/network/localip"
 )
 
 var (
@@ -16,20 +16,6 @@ var (
 // node checks if backup listener already created for that IP,
 //  if yes return yeah i am backup
 //  if not create the backup THEN send yeah i am backup
-
-// GET LOCAL IP UNTILL BETTER SOLUTION IS PRESENTED
-func GetLocalIP() (string, error) {
-	// Dial UDP to an external address – no data is sent.
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	// Get the local address of the connection.
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String(), nil
-}
 
 func CallBackup(TargetIP string, password string) (backupCreated bool) {
 
@@ -44,7 +30,7 @@ func CallBackup(TargetIP string, password string) (backupCreated bool) {
 		backupCreated = true
 
 	} else {
-		localIP, err := GetLocalIP()
+		localIP, err := localip.LocalIP()
 		if err != nil {
 			fmt.Printf("Failed to get local IP %v", err)
 			backupCreated = false
