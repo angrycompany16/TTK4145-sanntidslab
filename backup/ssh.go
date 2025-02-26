@@ -70,7 +70,7 @@ func ReviveElevator(ipaddress string, password string) {
 	fmt.Print("Running Elevator\n")
 
 	_source := "source ~/.bashrc; export GO111MODULE=on; export GOROOT=/usr/local/go; export GOPATH=~/go;"
-	_runFile := _source + "cd ~/Documents/gruppe56/TTK4145-sanntidslab/ && go run . --mode=normal --node=primary; exec bash"
+	_runFile := _source + "cd ~/Documents/gruppe56/TTK4145-sanntidslab/ && go run . --mode=virtual --node=primary; exec bash"
 
 	_commands := fmt.Sprintf("export DISPLAY=:0; nohup gnome-terminal -- bash -c \"%s\" > /dev/null 2>&1 &", _runFile)
 	_ssh := fmt.Sprintf("sshpass -p '%s' ssh student@%s '%s'", password, ipaddress, _commands)
@@ -86,7 +86,7 @@ func ReviveElevatorserver(ipaddress string, password string) { // refer to the r
 
 	fmt.Print("Running ElevatorServer\n")
 
-	_runFile := "elevatorserver; exec bash"
+	_runFile := "simelevatorserver; exec bash"
 
 	_commands := fmt.Sprintf("export DISPLAY=:0; nohup gnome-terminal -- bash -c \"%s\" > /dev/null 2>&1 &", _runFile)
 	_ssh := fmt.Sprintf("sshpass -p '%s' ssh student@%s '%s'", password, ipaddress, _commands)
@@ -112,7 +112,7 @@ func Revive(ipaddress string, password string) [2]int {
 
 	} else {
 		fmt.Println("Elevatorserver is not running")
-		ReviveElevatorserver(ipaddress, password)
+		//ReviveElevatorserver(ipaddress, password)
 		exitCodes[0] = 1
 	}
 

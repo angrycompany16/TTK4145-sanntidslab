@@ -1,20 +1,32 @@
 package backup
 
 import (
+	"fmt"
+	elevalgo "sanntidslab/elev_al_go"
+	networking "sanntidslab/network"
 	"sync"
+	"time"
+
+	"github.com/angrycompany16/Network-go/network/localip"
 	//elevalgo "sanntidslab/elev_al_go"
 	//timer "sanntidslab/elev_al_go/timer"
-	//networking "sanntidslab/network"
+)
+
+var (
+	thisBackup = Backup{
+		password: Password,
+	}
 )
 
 type Backup struct {
 	primaryIP string
 	password  string
-	AliveLock *sync.Mutex
-	//BackupView []elevalgo.Elevator                               ----spør david hva faen dette er
+	lastSeen  time.Time
+	aliveLock *sync.Mutex
+	state     elevalgo.Elevator
 }
 
-func backupFunctionality(backup *Backup) {
+func HandleLifeSignal(lifesignal networking.LifeSignal) {
 	// GOAL OF FUNCTION: if the listener detects that main is ded, revive. if alive update backupView
 
 	// while timer not expired {
@@ -25,27 +37,25 @@ func backupFunctionality(backup *Backup) {
 	// 2.2 if lifesignal recieved, update backupView
 	//}
 
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		fmt.Print("no")
+	}
+
+	if lifesignal.ListenerAddr.IP.String() != localIP {
+		fmt.Println("Backed up", lifesignal.ListenerAddr.IP.String())
+		thisBackup.primaryIP = lifesignal.ListenerAddr.IP.String()
+		thisBackup.lastSeen = time.Now()
+		thisBackup.state = lifesignal.State
+	}
 }
 
-func main() {
-	// var node string
-	// flag.StringVar(&node, "node", "", "flag to be able to tell if program has backup running")
+func ReviveTimeout() {
+	timeout := time.Second * 6
 
-	// var hostIP string
-	// flag.StringVar(&hostIP, "hostIP", hostIP, "Get hostIP from flag")
-
-	// flag.Parse()
-
-	// backup := Backup{
-	// 	primaryIP: hostIP,
-	// 	password:  "password",
-	// 	AliveLock: &sync.Mutex{},
-	// 	//BackupView: []elevalgo.Elevator{},                               ----spør david hva faen dette er
-	// }
-
-	// for {
-	// 	backupFunctionality(&backup)
-	// }
-
-	Revive(ipaddress, password)
+	for {
+		if thisBackup.lastSeen.Add(timeout).Before(time.Now()) {
+			Revive(thisBackup.primaryIP, thisBackup.password)
+		}
+	}
 }

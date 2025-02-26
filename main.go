@@ -34,16 +34,29 @@ func main() {
 
 		incoming_requests := make(chan networking.ElevatorRequest)
 		go networking.ThisNode.PipeListener(incoming_requests)
-		for {
+
+		dieChan := make(chan int)
+		go func() {
 			if networking.ThisNode.GetDebugInput() {
 				fmt.Println("Exiting")
+				dieChan <- 1
+			}
+		}()
+
+		for {
+			select {
+			case lifeSignal := <-networking.LifeSignalChan:
+				// fmt.Println("Life signal")
+				backup.HandleLifeSignal(lifeSignal)
+				networking.ThisNode.ReadLifeSignals(lifeSignal)
+			case <-dieChan:
 				return
 			}
 		}
 	}
 
 	if mode == testMode {
-		ipaddress := "10.100.23.23"
+		ipaddress := "10.100.23.24"
 		password := "Sanntid15"
 		backup.Revive(ipaddress, password)
 

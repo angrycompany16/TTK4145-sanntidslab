@@ -30,8 +30,9 @@ const (
 )
 
 var (
-	timeout  = time.Second * 5
-	ThisNode node
+	timeout        = time.Second * 5
+	ThisNode       node
+	LifeSignalChan = make(chan LifeSignal)
 )
 
 type LifeSignal struct {
@@ -114,50 +115,90 @@ func (n *node) sendLifeSignal(signalChan chan (LifeSignal)) {
 			signal.WorldView = append(signal.WorldView, peer.state)
 		}
 
+		// println("Sending life signal")
+
 		signalChan <- signal
 		time.Sleep(time.Millisecond * 10)
 	}
 }
 
-func (n *node) readLifeSignals(signalChan chan (LifeSignal)) {
-LifeSignals:
-	for lifeSignal := range signalChan {
-		if n.id == lifeSignal.SenderId {
-			continue
-		}
-
-		n.peersLock.Lock()
-		for _, _peer := range n.peers {
-			if _peer.id == lifeSignal.SenderId {
-				_peer.lastSeen = time.Now()
-				_peer.state = lifeSignal.State
-				// I think QUIC might be the best thing to have graced the earth with its existence
-				// We want to connect that boy
-				// TODO: improve synchronization of connections so they work even under
-				// huge packet loss / just figure out why they don't work
-				if !_peer.sender.Connected {
-					go _peer.sender.Send()
-					<-_peer.sender.ReadyChan
-					_peer.sender.Connected = true
-				}
-
-				n.peersLock.Unlock()
-
-				continue LifeSignals
-			}
-		}
-
-		sender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
-
-		newPeer := newPeer(sender, lifeSignal.State, lifeSignal.SenderId)
-
-		n.peers = append(n.peers, newPeer)
-		fmt.Println("New peer added: ")
-		fmt.Println(newPeer)
-
-		n.peersLock.Unlock()
+func (n *node) ReadLifeSignals(lifeSignal LifeSignal) {
+	if n.id == lifeSignal.SenderId {
+		// fmt.Println("Me")
+		return
 	}
+
+	n.peersLock.Lock()
+	for _, _peer := range n.peers {
+		if _peer.id == lifeSignal.SenderId {
+			_peer.lastSeen = time.Now()
+			_peer.state = lifeSignal.State
+			// I think QUIC might be the best thing to have graced the earth with its existence
+			// We want to connect that boy
+			// TODO: improve synchronization of connections so they work even under
+			// huge packet loss / just figure out why they don't work
+			if !_peer.sender.Connected {
+				go _peer.sender.Send()
+				<-_peer.sender.ReadyChan
+				_peer.sender.Connected = true
+			}
+
+			n.peersLock.Unlock()
+
+			return
+		}
+	}
+
+	sender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
+
+	newPeer := newPeer(sender, lifeSignal.State, lifeSignal.SenderId)
+
+	n.peers = append(n.peers, newPeer)
+	fmt.Println("New peer added: ")
+	fmt.Println(newPeer)
+
+	n.peersLock.Unlock()
 }
+
+// func (n *node) readLifeSignals(signalChan chan (LifeSignal)) {
+// LifeSignals:
+// 	for lifeSignal := range signalChan {
+// 		if n.id == lifeSignal.SenderId {
+// 			continue
+// 		}
+
+// 		n.peersLock.Lock()
+// 		for _, _peer := range n.peers {
+// 			if _peer.id == lifeSignal.SenderId {
+// 				_peer.lastSeen = time.Now()
+// 				_peer.state = lifeSignal.State
+// 				// I think QUIC might be the best thing to have graced the earth with its existence
+// 				// We want to connect that boy
+// 				// TODO: improve synchronization of connections so they work even under
+// 				// huge packet loss / just figure out why they don't work
+// 				if !_peer.sender.Connected {
+// 					go _peer.sender.Send()
+// 					<-_peer.sender.ReadyChan
+// 					_peer.sender.Connected = true
+// 				}
+
+// 				n.peersLock.Unlock()
+
+// 				continue LifeSignals
+// 			}
+// 		}
+
+// 		sender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
+
+// 		newPeer := newPeer(sender, lifeSignal.State, lifeSignal.SenderId)
+
+// 		n.peers = append(n.peers, newPeer)
+// 		fmt.Println("New peer added: ")
+// 		fmt.Println(newPeer)
+
+// 		n.peersLock.Unlock()
+// 	}
+// }
 
 // Sends a request given button type and floor to the first free node
 // Returns false if the message was sent away, true if it should be handled by this elevator
@@ -232,14 +273,16 @@ func InitElevator(state *elevalgo.Elevator) {
 	fmt.Println("Successfully created new network node: ")
 	fmt.Println(ThisNode)
 
-	lifeSignalChannel := make(chan LifeSignal)
+	// lifeSignalChannel := make(chan LifeSignal)
 
-	go transfer.BroadcastSender(stateBroadcastPort, lifeSignalChannel)
-	go transfer.BroadcastReceiver(stateBroadcastPort, lifeSignalChannel)
+	go transfer.BroadcastSender(stateBroadcastPort, LifeSignalChan)
+	go transfer.BroadcastReceiver(stateBroadcastPort, LifeSignalChan)
 
 	go ThisNode.timeout()
-	go ThisNode.sendLifeSignal(lifeSignalChannel)
-	go ThisNode.readLifeSignals(lifeSignalChannel)
+	go ThisNode.sendLifeSignal(LifeSignalChan)
+	// go ThisNode.readLifeSignals(LifeSignalChan)
+
+	// fmt.Println("ASKLDC")
 
 	// go ThisNode.handleRequests()
 }
