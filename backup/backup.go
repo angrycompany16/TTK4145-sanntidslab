@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ipaddress  string = "10.100.23.24"
+	ipaddress  string = "10.100.23.23"
 	password   string = "Sanntid15"
 	backupFlag        = "--node=backup"
 )

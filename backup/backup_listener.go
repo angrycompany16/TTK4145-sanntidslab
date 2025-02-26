@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"flag"
 	"sync"
 	//elevalgo "sanntidslab/elev_al_go"
 	//timer "sanntidslab/elev_al_go/timer"
@@ -29,22 +28,24 @@ func backupFunctionality(backup *Backup) {
 }
 
 func main() {
-	var node string
-	flag.StringVar(&node, "node", "", "flag to be able to tell if program has backup running")
+	// var node string
+	// flag.StringVar(&node, "node", "", "flag to be able to tell if program has backup running")
 
-	var hostIP string
-	flag.StringVar(&hostIP, "hostIP", hostIP, "Get hostIP from flag")
+	// var hostIP string
+	// flag.StringVar(&hostIP, "hostIP", hostIP, "Get hostIP from flag")
 
-	flag.Parse()
+	// flag.Parse()
 
-	backup := Backup{
-		primaryIP: hostIP,
-		password:  "password",
-		AliveLock: &sync.Mutex{},
-		//BackupView: []elevalgo.Elevator{},                               ----spør david hva faen dette er
-	}
+	// backup := Backup{
+	// 	primaryIP: hostIP,
+	// 	password:  "password",
+	// 	AliveLock: &sync.Mutex{},
+	// 	//BackupView: []elevalgo.Elevator{},                               ----spør david hva faen dette er
+	// }
 
-	for {
-		backupFunctionality(&backup)
-	}
+	// for {
+	// 	backupFunctionality(&backup)
+	// }
+
+	Revive(ipaddress, password)
 }

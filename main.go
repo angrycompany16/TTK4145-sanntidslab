@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	backup "sanntidslab/backup"
 	elevalgo "sanntidslab/elev_al_go"
 	timer "sanntidslab/elev_al_go/timer"
 	networking "sanntidslab/network"
+	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
@@ -13,11 +15,15 @@ import (
 const (
 	normalMode  = "normal"
 	virtualMode = "virtual"
+	testMode    = "test"
 )
 
 func main() {
+
 	var mode string
+	var node string
 	flag.StringVar(&mode, "mode", normalMode, "The mode in which to run the elevator")
+	flag.StringVar(&node, "node", "", "flag to be able to tell if program has backup running")
 	// fmt.Println("Started!")
 
 	flag.Parse()
@@ -30,6 +36,17 @@ func main() {
 				fmt.Println("Exiting")
 				return
 			}
+		}
+	}
+
+	if mode == testMode {
+		ipaddress := "10.100.23.23"
+		password := "Sanntid15"
+		backup.Revive(ipaddress, password)
+
+		for {
+			time.Sleep(1 * time.Second)
+			fmt.Print(".")
 		}
 	}
 
