@@ -14,7 +14,7 @@ import (
 
 var (
 	thisBackup = Backup{
-		password: Password,
+		password: Password, 
 	}
 )
 
@@ -39,23 +39,29 @@ func HandleLifeSignal(lifesignal networking.LifeSignal) {
 
 	localIP, err := localip.LocalIP()
 	if err != nil {
-		fmt.Print("no")
+		fmt.Printf("Failed to get local IP %v", err)
 	}
 
 	if lifesignal.ListenerAddr.IP.String() != localIP {
+
+		thisBackup.aliveLock.Lock()
+
 		fmt.Println("Backed up", lifesignal.ListenerAddr.IP.String())
 		thisBackup.primaryIP = lifesignal.ListenerAddr.IP.String()
 		thisBackup.lastSeen = time.Now()
 		thisBackup.state = lifesignal.State
+
+		thisBackup.aliveLock.Unlock()
 	}
 }
 
 func ReviveTimeout() {
+	revived := int
 	timeout := time.Second * 6
 
 	for {
-		if thisBackup.lastSeen.Add(timeout).Before(time.Now()) {
-			Revive(thisBackup.primaryIP, thisBackup.password)
+		if !thisBackup.lastSeen.Add(timeout).Before(time.Now()) {
+			revived = Revive(thisBackup.primaryIP, thisBackup.password)
 		}
 	}
 }

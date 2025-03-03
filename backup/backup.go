@@ -45,7 +45,7 @@ func CallBackup(TargetIP string, password string) (backupCreated bool) {
 }
 
 // if we want to check existence of backup for something
-func checkExistence(BackupIP string, password string) (backupExistence bool) {
+func CheckExistence(BackupIP string, password string) (backupExistence bool) {
 
 	// SSH direkte inn og sjekk selv, eller backup life signal av et eller annet slag?
 

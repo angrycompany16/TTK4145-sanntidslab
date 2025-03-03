@@ -4,45 +4,27 @@
     "type": "split",
     "children": [
       {
-        "id": "8295aea4ec2ba1d6",
+        "id": "982b8e0913a2f7e8",
         "type": "tabs",
         "children": [
           {
-            "id": "54df57148674428c",
+            "id": "15ba2297786355a0",
             "type": "leaf",
             "state": {
               "type": "canvas",
               "state": {
                 "file": "Sanntid Peer2Peer updated.canvas",
                 "viewState": {
-                  "x": 1105.4410202240992,
-                  "y": 2923.077925507951,
-                  "zoom": -0.02070709632582563
-                }
-              },
-              "icon": "lucide-layout-dashboard",
-              "title": "Sanntid Peer2Peer updated"
-            }
-          },
-          {
-            "id": "ef0a12ed72214f1f",
-            "type": "leaf",
-            "state": {
-              "type": "canvas",
-              "state": {
-                "file": "Sanntid Peer2Peer updated.canvas",
-                "viewState": {
-                  "x": 6108.771085705724,
-                  "y": 4949.870780184065,
-                  "zoom": -0.6260035761867686
+                  "x": 6634,
+                  "y": 1862,
+                  "zoom": 0
                 }
               },
               "icon": "lucide-layout-dashboard",
               "title": "Sanntid Peer2Peer updated"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -115,7 +97,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Sanntid Peer2Peer forslag.canvas",
+                "file": "Sanntid Peer2Peer updated.canvas",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -125,7 +107,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for Sanntid Peer2Peer forslag"
+              "title": "Backlinks for Sanntid Peer2Peer updated"
             }
           },
           {
@@ -184,13 +166,13 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "ef0a12ed72214f1f",
+  "active": "15ba2297786355a0",
   "lastOpenFiles": [
-    "Sanntid Peer2Peer forslag.canvas",
-    "Sanntid Peer2Peer updated.canvas",
-    "Untitled.md",
-    "test.md",
     "SAnntid heis distributed.md",
+    "test.md",
+    "Sanntid Peer2Peer updated.canvas",
+    "Sanntid Peer2Peer forslag.canvas",
+    "Untitled.md",
     "Welcome.md"
   ]
 }
