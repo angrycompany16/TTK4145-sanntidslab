@@ -74,7 +74,6 @@ type node struct {
 	peersLock        *sync.Mutex
 	BackupAckChan    chan Ack
 	localRequestChan chan ElevatorRequest
-	// OutwardAckChan   chan Ack
 }
 
 // Problem: I want the request sender in the peer struct, but it would be nice to instantiate
@@ -86,9 +85,7 @@ type node struct {
 // Not sure, it is quite a strange conundrum
 // For now, let's keep them in the same file
 type peer struct {
-	sender transfer.Sender
-	// ackSender    transfer.Sender // Sender through which we send records to be backed up
-	// recordSender transfer.Sender // Sender through which we send records to be backed up
+	sender   transfer.Sender
 	state    elevalgo.Elevator
 	id       string
 	lastSeen time.Time
@@ -123,6 +120,8 @@ func (n *node) sendLifeSignal(signalChan chan (LifeSignal)) {
 	}
 }
 
+// We need to somehow read the requests from the information given by the other peers:
+// My idea: Just take me OR given info
 func (n *node) readLifeSignals(signalChan chan (LifeSignal)) {
 LifeSignals:
 	for lifeSignal := range signalChan {
@@ -154,8 +153,6 @@ LifeSignals:
 
 		newPeer := newPeer(requestSender, lifeSignal.State, lifeSignal.SenderId)
 
-		// Send backed up requests back to the new elevator
-
 		n.peers = append(n.peers, newPeer)
 		fmt.Println("New peer added: ")
 		fmt.Println(newPeer)
@@ -163,6 +160,9 @@ LifeSignals:
 		n.peersLock.Unlock()
 	}
 }
+
+// How to ensure that an elevator has accepted the call before servicing it? Remember that it
+// is not a given that a lifesignal will be sent in a short time due to packet loss
 
 // Sends a request given button type and floor to the first free node
 // Returns false if the message was sent away, true if it should be handled by this elevator
@@ -203,9 +203,10 @@ func (n *node) SendRequest(button elevio.ButtonEvent) bool {
 
 			// Listen for ack
 			// If ack times out, also continue
-			acknowledge := <-n.BackupAckChan
-			fmt.Println("acknowledge received", acknowledge)
-			n.localRequestChan <- req
+			fmt.Println("Waiting for ack...")
+			<-n.BackupAckChan
+			fmt.Println("acknowledge received!")
+			// n.localRequestChan <- req
 			return true
 			// Send to active requests
 			// If timeout, continue
@@ -262,10 +263,12 @@ func (n *node) getBestElevator() string {
 	return winnerID
 }
 
+// TODO: remove the need for wrapping in newGeneralMsg
 func (n *node) SendAck(id string) {
 	for _, peer := range n.peers {
 		if peer.id == id {
-			peer.sender.DataChan <- Ack{}
+			// fmt.Println("Sending ack")
+			peer.sender.DataChan <- newGeneralMsg(Ack{})
 		}
 	}
 }
@@ -273,13 +276,10 @@ func (n *node) SendAck(id string) {
 // TODO: Need a way to check which struct was actually received
 func (n *node) PipeListener(requestRx chan ElevatorRequest, ackRx chan Ack, recordRx chan Record) {
 	for msg := range n.requestListener.DataChan {
+		// fmt.Println("Message received")
 		var message GeneralMsg
-		// The core of the problem: GeneralMsg has a type interface{}, so it won't
-		// be able to encode nested structs as they will just be stored as maps
-		// fmt.Println("Message:", msg)
 		mapstructure.Decode(msg, &message)
-		// Structify(&msg, &message)
-		// fmt.Println(message)
+		// fmt.Println(message.TypeName)
 		switch message.TypeName {
 		case reflect.TypeOf(ElevatorRequest{}).Name():
 			var request ElevatorRequest
@@ -294,7 +294,9 @@ func (n *node) PipeListener(requestRx chan ElevatorRequest, ackRx chan Ack, reco
 			if err != nil {
 				log.Fatal("Died ack og ve")
 			}
-			ackRx <- ack
+			fmt.Println(reflect.TypeOf(Ack{}).Name())
+			n.BackupAckChan <- ack
+			// ackRx <- ack
 		case reflect.TypeOf(Record{}).Name():
 			var record Record
 			err := mapstructure.Decode(message.Data, &record)
@@ -310,7 +312,7 @@ func (n *node) LocalRequests(requestChan chan ElevatorRequest) {
 
 }
 
-func InitNode(state *elevalgo.Elevator) {
+func InitNode(state *elevalgo.Elevator, localRequestChan chan ElevatorRequest) {
 	for {
 		var id string
 		flag.StringVar(&id, "id", "", "id of this peer")
@@ -333,19 +335,13 @@ func InitNode(state *elevalgo.Elevator) {
 
 		IP := net.ParseIP(ip)
 
-		ThisNode = newElevator(id, IP, state)
+		ThisNode = newElevator(id, IP, state, localRequestChan)
 
 		break
 	}
 
 	go ThisNode.requestListener.Listen()
 	<-ThisNode.requestListener.ReadyChan
-
-	// go ThisNode.ackListener.Listen()
-	// <-ThisNode.requestListener.ReadyChan
-
-	// go ThisNode.recordListener.Listen()
-	// <-ThisNode.requestListener.ReadyChan
 
 	fmt.Println("Successfully created new network node: ")
 	fmt.Println(ThisNode)
@@ -358,7 +354,7 @@ func InitNode(state *elevalgo.Elevator) {
 	go ThisNode.readLifeSignals(LifeSignalChan)
 }
 
-func newElevator(id string, ip net.IP, state *elevalgo.Elevator) node {
+func newElevator(id string, ip net.IP, state *elevalgo.Elevator, localRequestChan chan ElevatorRequest) node {
 	return node{
 		id:            id,
 		state:         state,
@@ -368,8 +364,9 @@ func newElevator(id string, ip net.IP, state *elevalgo.Elevator) node {
 			IP:   ip,
 			Port: transfer.GetAvailablePort(),
 		}),
-		peers:     make([]*peer, 0),
-		peersLock: &sync.Mutex{},
+		localRequestChan: localRequestChan,
+		peers:            make([]*peer, 0),
+		peersLock:        &sync.Mutex{},
 	}
 }
 
