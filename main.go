@@ -7,7 +7,6 @@ import (
 	elevalgo "sanntidslab/elev_al_go"
 	timer "sanntidslab/elev_al_go/timer"
 	networking "sanntidslab/network"
-	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
@@ -15,7 +14,7 @@ import (
 const (
 	normalMode  = "normal"
 	virtualMode = "virtual"
-	testMode    = "test"
+
 )
 
 func main() {
@@ -55,17 +54,6 @@ func main() {
 		}
 	}
 
-	if mode == testMode {
-		ipaddress := "10.100.23.24"
-		password := "Sanntid15"
-		backup.Revive(ipaddress, password)
-
-		for {
-			time.Sleep(1 * time.Second)
-			fmt.Print(".")
-		}
-	}
-
 	elevio.Init("localhost:15657", elevalgo.NumFloors)
 	elevalgo.InitFsm()
 	networking.InitElevator(&elevalgo.ThisElevator)
@@ -75,21 +63,21 @@ func main() {
 	drv_obstr := make(chan bool)
 	poll_timer := make(chan bool)
 	incoming_requests := make(chan networking.ElevatorRequest)
-	// lifesignals
+	// lifeSignalChan := make(chan networking.LifeSignal)
 
 	go elevio.PollButtons(drv_buttons)
 	go elevio.PollFloorSensor(drv_floors)
 	go elevio.PollObstructionSwitch(drv_obstr)
 	go timer.PollTimer(poll_timer, elevalgo.GetTimeout())
 	go networking.ThisNode.PipeListener(incoming_requests)
+	// go backup.lifeSignalListener(lifeSignalChan, incoming_requests) 
 
 	for {
 		select {
-		// case lifesignal := <-lifesignalchan:
-		// important lock
-		// Update backup ...
-		// Update network ...
-		// important unlock
+		
+		// case lifeSignal := <-lifeSignalChan:
+			// HandleLifeSignal(lifeSignal)
+		
 		case request := <-incoming_requests:
 			elevalgo.RequestButtonPressed(request.Floor, request.ButtonType)
 		case button := <-drv_buttons:

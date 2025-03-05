@@ -25,6 +25,13 @@ import (
 // and
 // sudo sysctl -w net.core.wmem_max=7500000
 
+type NodeState int
+
+const (
+	Disconnected NodeState = iota
+	Connected
+)
+
 const (
 	stateBroadcastPort = 36251 // Akkordrekke
 )
@@ -53,11 +60,11 @@ type node struct {
 	state     *elevalgo.Elevator
 	ip        net.IP
 	listener  transfer.Listener
-	peers     []*peer
+	peers     []*Peer
 	peersLock *sync.Mutex
 }
 
-type peer struct {
+type Peer struct {
 	sender   transfer.Sender
 	state    elevalgo.Elevator
 	id       string
@@ -151,11 +158,11 @@ func (n *node) ReadLifeSignals(lifeSignal LifeSignal) {
 
 	sender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
 
-	newPeer := newPeer(sender, lifeSignal.State, lifeSignal.SenderId)
+	newpeer := newpeer(sender, lifeSignal.State, lifeSignal.SenderId)
 
-	n.peers = append(n.peers, newPeer)
+	n.peers = append(n.peers, newpeer)
 	fmt.Println("New peer added: ")
-	fmt.Println(newPeer)
+	fmt.Println(newpeer)
 
 	n.peersLock.Unlock()
 }
@@ -190,11 +197,11 @@ func (n *node) ReadLifeSignals(lifeSignal LifeSignal) {
 
 // 		sender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
 
-// 		newPeer := newPeer(sender, lifeSignal.State, lifeSignal.SenderId)
+// 		newpeer := newpeer(sender, lifeSignal.State, lifeSignal.SenderId)
 
-// 		n.peers = append(n.peers, newPeer)
+// 		n.peers = append(n.peers, newpeer)
 // 		fmt.Println("New peer added: ")
-// 		fmt.Println(newPeer)
+// 		fmt.Println(newpeer)
 
 // 		n.peersLock.Unlock()
 // 	}
@@ -296,13 +303,13 @@ func newElevator(id string, ip net.IP, state *elevalgo.Elevator) node {
 			IP:   ip,
 			Port: transfer.GetAvailablePort(),
 		}),
-		peers:     make([]*peer, 0),
+		peers:     make([]*Peer, 0),
 		peersLock: &sync.Mutex{},
 	}
 }
 
-func newPeer(sender transfer.Sender, state elevalgo.Elevator, id string) *peer {
-	return &peer{
+func newpeer(sender transfer.Sender, state elevalgo.Elevator, id string) *Peer {
+	return &Peer{
 		sender:   sender,
 		state:    state,
 		id:       id,
@@ -314,6 +321,6 @@ func (n node) String() string {
 	return fmt.Sprintf("Elevator %s, listening on: %s\n", n.id, &n.listener.Addr)
 }
 
-func (p peer) String() string {
-	return fmt.Sprintf("Peer %s, Sender object:\n %s\n", p.id, p.sender)
+func (p Peer) String() string {
+	return fmt.Sprintf("peer %s, Sender object:\n %s\n", p.id, p.sender)
 }
