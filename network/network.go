@@ -25,6 +25,13 @@ import (
 // and
 // sudo sysctl -w net.core.wmem_max=7500000
 
+type NodeState int
+
+const (
+	Disconnected NodeState = iota
+	Connected
+)
+
 const (
 	stateBroadcastPort = 36251 // Akkordrekke
 )
