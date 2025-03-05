@@ -8,6 +8,10 @@ import (
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
+// NOTE: For peer reviewers: Take a look at README.md if something is confusing. Also note
+// that the project is still far from finished, so the code will be somewhat confusing.
+// Unfortunately we don't really have any way to avoid this :/
+
 func main() {
 	elevio.Init("localhost:15657", elevalgo.NumFloors)
 	elevalgo.InitFsm()
