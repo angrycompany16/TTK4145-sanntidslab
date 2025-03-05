@@ -49,7 +49,7 @@ const (
 type Elevator struct {
 	floor     int
 	direction direction
-	requests  [NumFloors][NumButtons]bool
+	Requests  [NumFloors][NumButtons]bool
 	behaviour elevatorBehaviour
 	config    config
 }
@@ -77,7 +77,6 @@ func dirToString(d direction) string {
 	}
 }
 
-// TODO: Rewrite the string fcns
 func buttonToString(b elevio.ButtonType) string {
 	switch b {
 	case elevio.BT_HallUp:
@@ -118,7 +117,7 @@ func (e *Elevator) print() {
 			if (f == NumFloors-1 && btn == int(elevio.BT_HallUp)) || (f == 0 && btn == int(elevio.BT_HallDown)) {
 				fmt.Print("|     ")
 			} else {
-				if e.requests[f][btn] {
+				if e.Requests[f][btn] {
 					fmt.Print("|  #  ")
 				} else {
 					fmt.Print("|  -  ")
@@ -150,8 +149,6 @@ func loadConfig() (config, error) {
 func MakeUninitializedelevator() Elevator {
 	config, err := loadConfig()
 	if err != nil {
-		// TODO: Retry here instead of just crashing
-		// This is not very fault tolerant
 		log.Fatal("Failed to initialize elevator from .yaml file")
 	}
 

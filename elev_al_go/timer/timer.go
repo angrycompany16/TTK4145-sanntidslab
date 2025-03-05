@@ -3,8 +3,7 @@ package timer
 import "time"
 
 var (
-	pollRate = 20 * time.Millisecond
-	// timeOut   = 3 * time.Second
+	pollRate  = 20 * time.Millisecond
 	startTime time.Time
 	active    bool
 )

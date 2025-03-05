@@ -5,7 +5,7 @@ import "github.com/angrycompany16/driver-go/elevio"
 func (e *Elevator) requestsAbove() bool {
 	for f := e.floor + 1; f < NumFloors; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			if e.requests[f][btn] {
+			if e.Requests[f][btn] {
 				return true
 			}
 		}
@@ -16,7 +16,7 @@ func (e *Elevator) requestsAbove() bool {
 func (e *Elevator) requestsBelow() bool {
 	for f := 0; f < e.floor; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			if e.requests[f][btn] {
+			if e.Requests[f][btn] {
 				return true
 			}
 		}
@@ -26,7 +26,7 @@ func (e *Elevator) requestsBelow() bool {
 
 func (e *Elevator) requestsHere() bool {
 	for btn := 0; btn < NumButtons; btn++ {
-		if e.requests[e.floor][btn] {
+		if e.Requests[e.floor][btn] {
 			return true
 		}
 	}
@@ -73,9 +73,9 @@ func (e *Elevator) chooseDirection() dirBehaviourPair {
 func (e *Elevator) shouldStop() bool {
 	switch e.direction {
 	case down:
-		return e.requests[e.floor][elevio.BT_HallDown] || e.requests[e.floor][elevio.BT_Cab] || !e.requestsBelow()
+		return e.Requests[e.floor][elevio.BT_HallDown] || e.Requests[e.floor][elevio.BT_Cab] || !e.requestsBelow()
 	case up:
-		return e.requests[e.floor][elevio.BT_HallUp] || e.requests[e.floor][elevio.BT_Cab] || !e.requestsAbove()
+		return e.Requests[e.floor][elevio.BT_HallUp] || e.Requests[e.floor][elevio.BT_Cab] || !e.requestsAbove()
 	default:
 		return true
 	}
@@ -99,25 +99,25 @@ func clearAtCurrentFloor(e Elevator) Elevator {
 	switch e.config.ClearRequestVariant {
 	case clearAll:
 		for btn := 0; btn < NumButtons; btn++ {
-			e.requests[e.floor][btn] = false
+			e.Requests[e.floor][btn] = false
 		}
 
 	case clearSameDir:
-		e.requests[e.floor][elevio.BT_Cab] = false
+		e.Requests[e.floor][elevio.BT_Cab] = false
 		switch e.direction {
 		case up:
-			if !e.requestsAbove() && !e.requests[e.floor][elevio.BT_HallUp] {
-				e.requests[e.floor][elevio.BT_HallDown] = false
+			if !e.requestsAbove() && !e.Requests[e.floor][elevio.BT_HallUp] {
+				e.Requests[e.floor][elevio.BT_HallDown] = false
 			}
-			e.requests[e.floor][elevio.BT_HallUp] = false
+			e.Requests[e.floor][elevio.BT_HallUp] = false
 		case down:
-			if !e.requestsBelow() && !e.requests[e.floor][elevio.BT_HallDown] {
-				e.requests[e.floor][elevio.BT_HallUp] = false
+			if !e.requestsBelow() && !e.Requests[e.floor][elevio.BT_HallDown] {
+				e.Requests[e.floor][elevio.BT_HallUp] = false
 			}
-			e.requests[e.floor][elevio.BT_HallDown] = false
+			e.Requests[e.floor][elevio.BT_HallDown] = false
 		default:
-			e.requests[e.floor][elevio.BT_HallUp] = false
-			e.requests[e.floor][elevio.BT_HallDown] = false
+			e.Requests[e.floor][elevio.BT_HallUp] = false
+			e.Requests[e.floor][elevio.BT_HallDown] = false
 		}
 	}
 
