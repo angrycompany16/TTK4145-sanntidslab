@@ -9,6 +9,10 @@ import (
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
+const (
+	DisablePrinting = true
+)
+
 var (
 	ThisElevator Elevator
 )
@@ -42,8 +46,10 @@ func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
+		ThisElevator.print()
+	}
 
 	switch ThisElevator.behaviour {
 	case doorOpen:
@@ -71,19 +77,23 @@ func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 
 	setAllLights(ThisElevator)
 
-	fmt.Printf("\nNew state:\n")
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\nNew state:\n")
+		ThisElevator.print()
+	}
 }
 
+// TODO: MAke this a bit better (some stuff can be extracted to a function)
 func OnFloorArrival(newFloor int) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
-	ThisElevator.print()
-
+	if !DisablePrinting {
+		fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
+		ThisElevator.print()
+	}
 	ThisElevator.floor = newFloor
 
 	elevio.SetFloorIndicator(ThisElevator.floor)
@@ -100,8 +110,10 @@ func OnFloorArrival(newFloor int) {
 		}
 	}
 
-	fmt.Printf("\nNew state:\n")
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\nNew state:\n")
+		ThisElevator.print()
+	}
 }
 
 func OnDoorTimeout() {
@@ -110,9 +122,10 @@ func OnDoorTimeout() {
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s()\n", frame.Function)
-	ThisElevator.print()
-
+	if !DisablePrinting {
+		fmt.Printf("\n\n%s()\n", frame.Function)
+		ThisElevator.print()
+	}
 	switch ThisElevator.behaviour {
 	case doorOpen:
 		pair := ThisElevator.chooseDirection()
@@ -130,8 +143,10 @@ func OnDoorTimeout() {
 		}
 	}
 
-	fmt.Printf("\nNew state:\n")
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\nNew state:\n")
+		ThisElevator.print()
+	}
 }
 
 func DoorObstructed() {
