@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	networking "sanntidslab/network"
+	// networking "sanntidslab/network"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
@@ -26,9 +26,15 @@ type backupOrder struct {
 	floor      int
 }
 
+type Acknowledge struct {
+	Ack bool
+}
+
 // TODO: Connect backup to life signals from network.go
 
-func HandleLifeSignal(lifeSignal networking.LifeSignal) {
+func HandleLifeSignal() {
+	lifeSignal := <-LifeSignalChan
+
 	thisBackup.aliveLock.Lock()
 	defer thisBackup.aliveLock.Unlock()
 
@@ -50,29 +56,82 @@ func HandleLifeSignal(lifeSignal networking.LifeSignal) {
 	}
 }
 
-// funksjon som etterspør backup på ordre
-func requestBackup(peerList []networking.Peer) (success bool) {
-	// ask a random peer to backup a new order
-	// for _, peer := range peerList {
-	// Choose first free peer
-	// Blocking timeout when we wait for answer
-	// if backup received, return true
-
-	// return false
-	//}
-	return false
-}
-
-// funksjon som svarer på backup av ordre
-func acceptingBackup(request networking.ElevatorRequest) {
-	thisBackup.backupOrders = append(thisBackup.backupOrders, backupOrder{
+func requestBackup(request ElevatorRequest) bool {
+	order := backupOrder{
 		id:         request.SenderId,
 		lastSeen:   time.Now(),
 		buttonType: request.ButtonType,
 		floor:      request.Floor,
-	})
+	}
+
+	answerChan := make(chan Acknowledge)
+	quitChan := make(chan bool)
+	defer close(answerChan)
+	defer close(quitChan)
+
+	go ThisNode.pipeAcknowledge(answerChan, quitChan)
+
+	success := false
+	for _, peer := range ThisNode.peers {
+		peer.sender.DataChan <- order // Ask peer for backup
+
+		select { // Wait for acknowledge, if timeout continue and ask next peer
+		case <-answerChan:
+			quitChan <- true
+			return true
+
+		case <-time.After(1 * time.Second):
+			continue
+		}
+	}
+
+	quitChan <- true
+	return success
 }
+
+func (n *node) pipeAcknowledge(answerChan chan Acknowledge, quitChan chan bool) {
+	for {
+		select {
+		case <-quitChan:
+			return
+
+		default:
+			for msg := range n.listener.DataChan {
+				var a Acknowledge
+				n.listener.DecodeMsg(&msg, &a)
+			}
+
+			answerChan <- a
+		}
+	}
+}
+
+func (n *node) pipeOrderListener() {
+	for msg := range n.listener.DataChan {
+		var order backupOrder
+		n.listener.DecodeMsg(&msg, &order)
+		acceptingBackup(order)
+
+		for _, peer := range n.peers {
+			if peer.id == order.id {
+				peer.sender.DataChan <- Acknowledge{Ack: true}
+			}
+		}
+
+	}
+}
+
+// funksjon som svarer på backup av ordre
+func acceptingBackup(order backupOrder) (success bool) {
+	thisBackup.backupOrders = append(thisBackup.backupOrders, order)
+	return true
+
+}
+
+// TODO: log all calls done when DC
 
 func sendBackup() {
 	// send cab orders back to revived elevators
 }
+
+// TODO: take over all hall calls
