@@ -30,7 +30,7 @@ type backupOrder struct {
 
 
 // overlap with network module functionality
-func lifeSignalListener(lifesignal chan networking.LifeSignal, request chan networking.ElevatorRequest) { 
+func lifeSignalListener(lifeSignal chan networking.LifeSignal, request chan networking.ElevatorRequest) { 
 
 	// Goroutine checking for lifesignals:
 	// if found, 
@@ -65,8 +65,16 @@ func HandleLifeSignal(lifeSignal networking.LifeSignal) {
 }
 
 // funksjon som etterspør backup på ordre
-func requestBackup() {
+func requestBackup(peerList []networking.Peer) (success bool) {
 	// ask a random peer to backup a new order
+	// for _, peer := range peerList {
+		// Choose first free peer
+		// Blocking timeout when we wait for answer
+		// if backup received, return true
+	
+		// return false
+	//} 
+
 }
 
 // funksjon som svarer på backup av ordre
@@ -81,4 +89,5 @@ func acceptingBackup(request networking.ElevatorRequest) {
 
 func sendBackup() {
 	// a dead elevator has been resurrected, send backup orders to it, especially the cab orders!
+
 }
