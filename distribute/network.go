@@ -1,13 +1,13 @@
 package distribute
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"math/rand/v2"
 	"net"
 	"reflect"
 	elevalgo "sanntidslab/elev_al_go"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -43,9 +43,11 @@ var (
 
 // NOTE: all fields must be public in structs that are being sent over the network
 type LifeSignal struct {
-	ListenerAddr net.UDPAddr
-	SenderId     string
-	State        elevalgo.Elevator
+	ListenerAddr       net.UDPAddr
+	SenderId           string
+	State              elevalgo.Elevator
+	UnservicedRequests []ElevatorRequest
+	WorldView          []PeerInfo // Our worldview
 }
 
 type ElevatorRequest struct {
@@ -65,15 +67,18 @@ type GeneralMsg struct {
 
 // TODO: Make debugging listeners / Network-go easier
 // Should be possible to customize a little
+// Add requests as its own struct
 type node struct {
-	id               string
-	state            *elevalgo.Elevator
-	ip               net.IP
-	requestListener  transfer.Listener
-	peers            []*peer
-	peersLock        *sync.Mutex
-	BackupAckChan    chan Ack
-	localRequestChan chan ElevatorRequest
+	id              string
+	state           *elevalgo.Elevator
+	ip              net.IP
+	requestListener transfer.Listener
+	peers           []*peer
+	peersLock       *sync.Mutex
+	// BackupAckChan    chan Ack
+	localRequestChan   chan ElevatorRequest
+	unservicedRequests []ElevatorRequest
+	// localState       elevalgo.Elevator // The state the elevator should be in
 }
 
 // Problem: I want the request sender in the peer struct, but it would be nice to instantiate
@@ -84,23 +89,32 @@ type node struct {
 // Perhaps we can move the peer somewhere else and use only the node structs?
 // Not sure, it is quite a strange conundrum
 // For now, let's keep them in the same file
+type PeerInfo struct {
+	State     elevalgo.Elevator
+	Id        string
+	LastSeen  time.Time
+	Connected bool
+}
+
 type peer struct {
-	sender   transfer.Sender
-	state    elevalgo.Elevator
-	id       string
-	lastSeen time.Time
+	sender transfer.Sender
+	info   PeerInfo
 }
 
 func (n *node) timeout() {
 	for {
 		n.peersLock.Lock()
-		for i, peer := range n.peers {
-			if peer.lastSeen.Add(timeout).Before(time.Now()) {
-				fmt.Println("Removing peer:", peer)
+		for _, peer := range n.peers {
+			if peer.info.LastSeen.Add(timeout).Before(time.Now()) && peer.info.Connected {
+				// Better idea: Set peer node state to disconnected
+				// This allows us to reconnect easily
+				peer.info.Connected = false
+				// TODO: Try removing this to see if it's actually unnecessary
+				fmt.Println("Disabling send channel to peer:", peer)
 				peer.sender.QuitChan <- 1
-				n.requestListener.QuitChan <- peer.id
-				n.peers[i] = n.peers[len(n.peers)-1]
-				n.peers = n.peers[:len(n.peers)-1]
+				n.requestListener.QuitChan <- peer.info.Id
+				// n.peers[i] = n.peers[len(n.peers)-1]
+				// n.peers = n.peers[:len(n.peers)-1]
 			}
 		}
 		n.peersLock.Unlock()
@@ -109,10 +123,26 @@ func (n *node) timeout() {
 
 func (n *node) sendLifeSignal(signalChan chan (LifeSignal)) {
 	for {
+		// TODO: move this out into its own function
+		derefPeers := make([]PeerInfo, 0)
+		for _, peer := range n.peers {
+
+			// for i := 0; i < elevalgo.NumFloors; i++ {
+			// 	for j := 0; j < elevalgo.NumButtons; j++ {
+			// 		if peer.info.State.Requests[i][j] {
+			// 			fmt.Println("Something is backed up")
+			// 		}
+			// 	}
+			// }
+
+			derefPeers = append(derefPeers, peer.info)
+		}
 		signal := LifeSignal{
-			ListenerAddr: n.requestListener.Addr,
-			SenderId:     n.id,
-			State:        *n.state,
+			ListenerAddr:       n.requestListener.Addr,
+			SenderId:           n.id,
+			State:              *n.state,
+			UnservicedRequests: n.unservicedRequests,
+			WorldView:          derefPeers,
 		}
 
 		signalChan <- signal
@@ -131,17 +161,27 @@ LifeSignals:
 
 		n.peersLock.Lock()
 		for _, _peer := range n.peers {
-			if _peer.id == lifeSignal.SenderId {
-				_peer.lastSeen = time.Now()
-				_peer.state = lifeSignal.State
-
-				// TODO: Can be made better
-				// We want to connect that boy
-				if !_peer.sender.Connected {
-					go _peer.sender.Send()
-					<-_peer.sender.ReadyChan
-					_peer.sender.Connected = true
+			if _peer.info.Id == lifeSignal.SenderId {
+				if !_peer.info.Connected {
+					fmt.Println("Connect peer")
+					n.ConnectPeer(_peer, lifeSignal)
+					n.GetLostRequests(lifeSignal)
+					n.peersLock.Unlock()
+					continue LifeSignals
 				}
+
+				_peer.info.LastSeen = time.Now()
+				_peer.info.State = lifeSignal.State
+
+				// TODO: [IN network.go] we can safely remove sender.Connnected
+				// If we receive an unserviced request, update the worldview
+				for _, req := range lifeSignal.UnservicedRequests {
+					fmt.Println("Someone else had an unserviced request")
+					_peer.info.State.Requests[req.Floor][req.ButtonType] = true
+				}
+
+				// Check if our unserviced requests have been backed up
+				n.CheckUnservicedRequests(lifeSignal)
 
 				n.peersLock.Unlock()
 
@@ -161,17 +201,58 @@ LifeSignals:
 	}
 }
 
-// How to ensure that an elevator has accepted the call before servicing it? Remember that it
-// is not a given that a lifesignal will be sent in a short time due to packet loss
+func (n *node) ConnectPeer(_peer *peer, lifeSignal LifeSignal) {
+	_peer.sender.Addr = lifeSignal.ListenerAddr
+	go _peer.sender.Send()
+	<-_peer.sender.ReadyChan
+	_peer.info.Connected = true
+}
 
-// Sends a request given button type and floor to the first free node
-// Returns false if the message was sent away, true if it should be handled by this elevator
-// TODO: Return value may not be needed here
-func (n *node) SendRequest(button elevio.ButtonEvent) bool {
-	if button.Button == elevio.BT_Cab {
-		return true
+func (n *node) GetLostRequests(lifeSignal LifeSignal) {
+	for _, _peer := range lifeSignal.WorldView {
+		if _peer.Id != n.id {
+			continue
+		}
+
+		for i := 0; i < elevalgo.NumFloors; i++ {
+			for j := 0; j < elevalgo.NumButtons; j++ {
+				// fmt.Println(_peer.State.Requests[i][j])
+				if !_peer.State.Requests[i][j] {
+					continue
+				}
+				n.localRequestChan <- ElevatorRequest{
+					SenderId:   "",
+					ButtonType: elevio.ButtonType(j),
+					Floor:      i,
+				}
+			}
+		}
 	}
+}
 
+func (n *node) CheckUnservicedRequests(lifeSignal LifeSignal) {
+	for _, _peer := range lifeSignal.WorldView {
+		// This is the sender's view of me
+		if _peer.Id == n.id {
+			for i, req := range n.unservicedRequests {
+				if _peer.State.Requests[req.Floor][req.ButtonType] {
+					// The request has been backed up
+					// Time to service the request
+					fmt.Println("Someone has backed up my unserviced request, I can now service it!")
+					n.localRequestChan <- req
+					// NOTE: This will reorder the requests
+					n.unservicedRequests[i] = n.unservicedRequests[len(n.peers)-1]
+					n.unservicedRequests = n.unservicedRequests[:len(n.peers)-1]
+				}
+			}
+		}
+	}
+}
+
+// Other idea: We can give the elevator a list of requests, and then when we compare
+// the state we can check if someone is broadcasting the request. If they are, send it
+// back to main.go and we have our guarantee.
+func (n *node) TakeRequest(button elevio.ButtonEvent) {
 	req := ElevatorRequest{
 		SenderId:   n.id,
 		ButtonType: button.Button,
@@ -180,54 +261,13 @@ func (n *node) SendRequest(button elevio.ButtonEvent) bool {
 
 	assigneeID := n.getBestElevator()
 
-	// Instead of waiting for some peer to become available, assign to ourselves if there
-	// is no peer that responds.
-	// NOTE: This may create deadlocking problems
 	if assigneeID == n.id {
-		// Request a node to backup the request
-		// Enter a for loop:
-		// Create a record
-		// Send the record to the peer
-		// Wait for ack
-		// Return if timeout
-		record := Record{
-			Request: req,
-			Id:      n.id,
+		// TODO: check if the request already exists
+		if slices.Contains(n.unservicedRequests, req) {
+			return
 		}
-		// NOTE: Right now this simply assumes that the first node will be free. Obviously
-		// this is not so great
-		for _, peer := range n.peers {
-			// Timeout
-			peer.sender.DataChan <- newGeneralMsg(record) // Send the backup request
-			// If timeout, continue
-
-			// Listen for ack
-			// If ack times out, also continue
-			fmt.Println("Waiting for ack...")
-			<-n.BackupAckChan
-			fmt.Println("acknowledge received!")
-			// n.localRequestChan <- req
-			return true
-			// Send to active requests
-			// If timeout, continue
-			// else we are backed up, move on out of the loop
-		}
-		// TODO: make this system
+		n.unservicedRequests = append(n.unservicedRequests, req)
 	}
-
-	n.peersLock.Lock()
-	for _, peer := range n.peers {
-		if peer.id == assigneeID {
-			// Backup the request
-			ThisBackup.AddRecord(req, peer.id)
-			// Send to the peer
-			peer.sender.DataChan <- newGeneralMsg(req) // Send the elevator request
-			n.peersLock.Unlock()
-			return false
-		}
-	}
-	n.peersLock.Unlock()
-	return true
 }
 
 func (n *node) SelfRequestNode(button elevio.ButtonEvent) ElevatorRequest {
@@ -245,41 +285,31 @@ func (n *node) SelfRequestNode(button elevio.ButtonEvent) ElevatorRequest {
 // TODO: Can surely be written in a nicer way
 // Returns the id of the elevator that should take the request
 func (n *node) getBestElevator() string {
-	elevatorList := []elevalgo.Elevator{*n.state}
-	for _, peer := range n.peers {
-		elevatorList = append(elevatorList, peer.state)
-	}
+	return n.id
 
-	var winnerID string
-	n.peersLock.Lock() // Changing the peer list during this operation is probably not a good
-	orderList := elevalgo.GetBestOrder(elevatorList)
-	if orderList[0] == 0 {
-		winnerID = n.id
-	} else {
-		winnerID = n.peers[orderList[0]-1].id
-	}
-	n.peersLock.Unlock()
+	// elevatorList := []elevalgo.Elevator{*n.state}
+	// for _, peer := range n.peers {
+	// 	elevatorList = append(elevatorList, peer.state)
+	// }
 
-	return winnerID
+	// var winnerID string
+	// n.peersLock.Lock() // Changing the peer list during this operation is probably not a good
+	// orderList := elevalgo.GetBestOrder(elevatorList)
+	// if orderList[0] == 0 {
+	// 	winnerID = n.id
+	// } else {
+	// 	winnerID = n.peers[orderList[0]-1].id
+	// }
+	// n.peersLock.Unlock()
+
+	// return winnerID
 }
 
-// TODO: remove the need for wrapping in newGeneralMsg
-func (n *node) SendAck(id string) {
-	for _, peer := range n.peers {
-		if peer.id == id {
-			// fmt.Println("Sending ack")
-			peer.sender.DataChan <- newGeneralMsg(Ack{})
-		}
-	}
-}
-
-// TODO: Need a way to check which struct was actually received
+// TODO: Can simplify a lot
 func (n *node) PipeListener(requestRx chan ElevatorRequest, ackRx chan Ack, recordRx chan Record) {
 	for msg := range n.requestListener.DataChan {
-		// fmt.Println("Message received")
 		var message GeneralMsg
 		mapstructure.Decode(msg, &message)
-		// fmt.Println(message.TypeName)
 		switch message.TypeName {
 		case reflect.TypeOf(ElevatorRequest{}).Name():
 			var request ElevatorRequest
@@ -288,15 +318,6 @@ func (n *node) PipeListener(requestRx chan ElevatorRequest, ackRx chan Ack, reco
 				log.Fatal("Died")
 			}
 			requestRx <- request
-		case reflect.TypeOf(Ack{}).Name():
-			var ack Ack
-			err := mapstructure.Decode(message.Data, &ack)
-			if err != nil {
-				log.Fatal("Died ack og ve")
-			}
-			fmt.Println(reflect.TypeOf(Ack{}).Name())
-			n.BackupAckChan <- ack
-			// ackRx <- ack
 		case reflect.TypeOf(Record{}).Name():
 			var record Record
 			err := mapstructure.Decode(message.Data, &record)
@@ -308,23 +329,17 @@ func (n *node) PipeListener(requestRx chan ElevatorRequest, ackRx chan Ack, reco
 	}
 }
 
-func (n *node) LocalRequests(requestChan chan ElevatorRequest) {
-
-}
-
-func InitNode(state *elevalgo.Elevator, localRequestChan chan ElevatorRequest) {
+func InitNode(state *elevalgo.Elevator, localRequestChan chan ElevatorRequest, id string) {
 	for {
-		var id string
-		flag.StringVar(&id, "id", "", "id of this peer")
-
-		flag.Parse()
-
 		if id == "" {
 			r := rand.Int()
 			fmt.Println("No id was given. Using randomly generated number", r)
 			id = strconv.Itoa(r)
 		}
 
+		// NOTE: a minor problem: When there is no internet connection, this code may block
+		// forever. Is there a way to solve this?
+		// TODO: Yes, timeout
 		ip, err := localip.LocalIP()
 		if err != nil {
 			fmt.Println("Could not get local IP address. Error:", err)
@@ -356,10 +371,9 @@ func InitNode(state *elevalgo.Elevator, localRequestChan chan ElevatorRequest) {
 
 func newElevator(id string, ip net.IP, state *elevalgo.Elevator, localRequestChan chan ElevatorRequest) node {
 	return node{
-		id:            id,
-		state:         state,
-		ip:            ip,
-		BackupAckChan: make(chan Ack),
+		id:    id,
+		state: state,
+		ip:    ip,
 		requestListener: transfer.NewListener(net.UDPAddr{
 			IP:   ip,
 			Port: transfer.GetAvailablePort(),
@@ -372,21 +386,24 @@ func newElevator(id string, ip net.IP, state *elevalgo.Elevator, localRequestCha
 
 func newPeer(requestSender transfer.Sender, state elevalgo.Elevator, id string) *peer {
 	return &peer{
-		sender:   requestSender,
-		state:    state,
-		id:       id,
-		lastSeen: time.Now(),
+		sender: requestSender,
+		info:   newPeerInfo(state, id),
 	}
 }
 
-// func NewAck(id string) Ack {
-// 	return Ack{id: id}
-// }
+func newPeerInfo(state elevalgo.Elevator, id string) PeerInfo {
+	return PeerInfo{
+		State:     state,
+		Id:        id,
+		LastSeen:  time.Now(),
+		Connected: false,
+	}
+}
 
 func (n node) String() string {
 	return fmt.Sprintf("Elevator %s, listening on: %s\n", n.id, &n.requestListener.Addr)
 }
 
 func (p peer) String() string {
-	return fmt.Sprintf("Peer %s, Sender object:\n %s\n", p.id, p.sender)
+	return fmt.Sprintf("Peer %s, Sender object:\n %s\n", p.info.Id, p.sender)
 }

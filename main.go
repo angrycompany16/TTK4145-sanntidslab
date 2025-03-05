@@ -15,8 +15,9 @@ const (
 )
 
 func main() {
-	var port string
+	var port, id string
 	flag.StringVar(&port, "port", "", "Elevator server port")
+	flag.StringVar(&id, "id", "", "Network node id")
 	fmt.Println("Started!")
 
 	flag.Parse()
@@ -32,14 +33,14 @@ func main() {
 	acks := make(chan distribute.Ack, 1)
 	records := make(chan distribute.Record, 1)
 
-	distribute.InitNode(&elevalgo.ThisElevator, requests)
+	distribute.InitNode(&elevalgo.ThisElevator, requests, id)
 
 	go elevio.PollButtons(drv_buttons)
 	go elevio.PollFloorSensor(drv_floors)
 	go elevio.PollObstructionSwitch(drv_obstr)
 	go timer.PollTimer(poll_timer, elevalgo.GetTimeout())
 	go distribute.ThisNode.PipeListener(requests, acks, records)
-	go distribute.ThisNode.LocalRequests(requests)
+	// go distribute.ThisNode.LocalRequests(requests)
 
 	// New backup idea: Every node already knows the last broadcasted state of every other node
 	// Upon connecting, read the state we are supposed to have from this node
@@ -51,23 +52,20 @@ func main() {
 	// This is getting scarily close to being a pure p2p solution
 	for {
 		select {
-		case ack := <-acks:
-			fmt.Println("Ack received")
-			distribute.ThisNode.BackupAckChan <- ack
-		case record := <-records:
-			fmt.Println("Record received")
-			distribute.ThisBackup.AddRecord(record.Request, record.Id)
-			// Acknowledge that the request has been backed up
-			distribute.ThisNode.SendAck(record.Id)
-
 		case request := <-requests: // WARNING: sending requests into this channel
 			// *will* cause buttons to light up!
 			elevalgo.RequestButtonPressed(request.Floor, request.ButtonType)
 		case button := <-drv_buttons:
-			if distribute.ThisNode.SendRequest(button) {
-				requests <- distribute.ThisNode.SelfRequestNode(button)
-				fmt.Println("Requested from self")
-			}
+			// Store the call and broadcast it
+			// As soon as someone broadcasts a worldview that shows they have the
+			// same requests, consider this as a guarantee and take the request
+
+			distribute.ThisNode.TakeRequest(button)
+
+			// if distribute.ThisNode.SendRequest(button) {
+			// 	requests <- distribute.ThisNode.SelfRequestNode(button)
+			// 	fmt.Println("Requested from self")
+			// }
 		case floor := <-drv_floors:
 			elevalgo.OnFloorArrival(floor)
 		case obstructed := <-drv_obstr:

@@ -49,7 +49,7 @@ const (
 type Elevator struct {
 	floor     int
 	direction direction
-	requests  [NumFloors][NumButtons]bool
+	Requests  [NumFloors][NumButtons]bool
 	behaviour elevatorBehaviour
 	config    config
 }
@@ -118,7 +118,7 @@ func (e *Elevator) print() {
 			if (f == NumFloors-1 && btn == int(elevio.BT_HallUp)) || (f == 0 && btn == int(elevio.BT_HallDown)) {
 				fmt.Print("|     ")
 			} else {
-				if e.requests[f][btn] {
+				if e.Requests[f][btn] {
 					fmt.Print("|  #  ")
 				} else {
 					fmt.Print("|  -  ")

@@ -29,7 +29,7 @@ func setAllLights(elevator Elevator) {
 				fmt.Println("floor ", floor)
 				fmt.Println("button ", btn)
 			}
-			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.requests[floor][btn])
+			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.Requests[floor][btn])
 		}
 	}
 }
@@ -56,12 +56,12 @@ func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 		if ThisElevator.shouldClearImmediately(buttonFloor, buttonType) {
 			timer.StartTimer()
 		} else {
-			ThisElevator.requests[buttonFloor][buttonType] = true
+			ThisElevator.Requests[buttonFloor][buttonType] = true
 		}
 	case moving:
-		ThisElevator.requests[buttonFloor][buttonType] = true
+		ThisElevator.Requests[buttonFloor][buttonType] = true
 	case idle:
-		ThisElevator.requests[buttonFloor][buttonType] = true
+		ThisElevator.Requests[buttonFloor][buttonType] = true
 		pair := ThisElevator.chooseDirection()
 		ThisElevator.direction = pair.dir
 		ThisElevator.behaviour = pair.behaviour
