@@ -26,14 +26,36 @@ type backupOrder struct {
 	floor      int
 }
 
-type Acknowledge struct {
-	Ack bool
+type acknowledge bool
+
+
+func BackupFSM() {
+	backupRequestChan := make(chan backupOrder)
+	orderChan := make(chan ElevatorRequest)
+	
+	go ThisNode.pipeOrderListener(backupRequestChan)
+	go ThisNode.readLifeSignals(LifeSignalChan)
+
+	for {
+		select {
+		case backupRequest := <-backupRequestChan:
+			acception := acceptingBackup(backupRequest)
+			receiverId := backupRequest.id
+			ThisNode.sendAcknowledge(acception, receiverId)
+
+		case lifeSignal := <-LifeSignalChan:
+			updateBackup(lifeSignal)
+
+		case order := <- orderChan:
+			requestBackup(order) //success is returned, should we do something with it?
+		
+		
+		}
+	}
 }
 
 // TODO: Connect backup to life signals from network.go
-
-func HandleLifeSignal() {
-	lifeSignal := <-LifeSignalChan
+func updateBackup(lifeSignal LifeSignal) {
 
 	thisBackup.aliveLock.Lock()
 	defer thisBackup.aliveLock.Unlock()
@@ -64,12 +86,12 @@ func requestBackup(request ElevatorRequest) bool {
 		floor:      request.Floor,
 	}
 
-	answerChan := make(chan Acknowledge)
-	quitChan := make(chan bool)
+	answerChan := make(chan acknowledge)
+	doneChan := make(chan bool)
 	defer close(answerChan)
-	defer close(quitChan)
+	defer close(doneChan)
 
-	go ThisNode.pipeAcknowledge(answerChan, quitChan)
+	go ThisNode.pipeAcknowledge(answerChan, doneChan)
 
 	success := false
 	for _, peer := range ThisNode.peers {
@@ -77,7 +99,7 @@ func requestBackup(request ElevatorRequest) bool {
 
 		select { // Wait for acknowledge, if timeout continue and ask next peer
 		case <-answerChan:
-			quitChan <- true
+			doneChan <- true
 			return true
 
 		case <-time.After(1 * time.Second):
@@ -85,44 +107,46 @@ func requestBackup(request ElevatorRequest) bool {
 		}
 	}
 
-	quitChan <- true
+	doneChan <- true
 	return success
 }
 
-func (n *node) pipeAcknowledge(answerChan chan Acknowledge, quitChan chan bool) {
+func (n *node) pipeAcknowledge(answerChan chan acknowledge, doneChan chan bool) {
 	for {
 		select {
-		case <-quitChan:
+		case <-doneChan:
 			return
 
 		default:
 			for msg := range n.listener.DataChan {
-				var a Acknowledge
+				var a acknowledge
 				n.listener.DecodeMsg(&msg, &a)
+				answerChan <- a
 			}
 
-			answerChan <- a
+			
 		}
 	}
 }
 
-func (n *node) pipeOrderListener() {
+func (n *node) pipeOrderListener(orderChan chan backupOrder) {
 	for msg := range n.listener.DataChan {
 		var order backupOrder
 		n.listener.DecodeMsg(&msg, &order)
-		acceptingBackup(order)
+		orderChan <- order
+	}
+}
 
-		for _, peer := range n.peers {
-			if peer.id == order.id {
-				peer.sender.DataChan <- Acknowledge{Ack: true}
-			}
+func (n *node) sendAcknowledge(success acknowledge, id string) {
+	for _, peer := range n.peers {
+		if peer.id == id {
+			peer.sender.DataChan <- success
 		}
-
 	}
 }
 
 // funksjon som svarer på backup av ordre
-func acceptingBackup(order backupOrder) (success bool) {
+func acceptingBackup(order backupOrder) (success acknowledge) {
 	thisBackup.backupOrders = append(thisBackup.backupOrders, order)
 	return true
 

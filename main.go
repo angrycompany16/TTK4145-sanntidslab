@@ -1,7 +1,7 @@
 package main
 
 import (
-	"sanntidslab/backup"
+	backup "sanntidslab/backup"
 	elevalgo "sanntidslab/elev_al_go"
 	timer "sanntidslab/elev_al_go/timer"
 
@@ -14,6 +14,8 @@ func main() {
 	elevio.Init("localhost:15657", elevalgo.NumFloors)
 	elevalgo.InitFsm()
 	backup.InitElevator(&elevalgo.ThisElevator)
+	
+	go backup.BackupFSM()
 
 	drv_buttons := make(chan elevio.ButtonEvent)
 	drv_floors := make(chan int)
