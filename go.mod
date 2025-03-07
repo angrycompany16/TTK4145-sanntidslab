@@ -5,13 +5,13 @@ go 1.23.0
 toolchain go1.24.0
 
 require (
+	github.com/angrycompany16/Network-go v0.0.0-20250306235422-d2b9ee4fa91b
 	github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/mitchellh/mapstructure v1.5.0
 )
 
 require (
-	github.com/angrycompany16/Network-go v0.0.0-20250306234742-a6dd0f1e4f37 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/onsi/ginkgo/v2 v2.22.2 // indirect

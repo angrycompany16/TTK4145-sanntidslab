@@ -1,9 +1,7 @@
-github.com/angrycompany16/Network-go v0.0.0-20250306193742-5b680b73f738 h1:4CrTtgbuxZpFGXe+KehJvCEluHfgoZpUI9A3NmEbh5w=
-github.com/angrycompany16/Network-go v0.0.0-20250306193742-5b680b73f738/go.mod h1:Ygb5NEzOxpQ3PI2nv9WAg+UMnwB+uRDnLjZPJZhETA8=
-github.com/angrycompany16/Network-go v0.0.0-20250306195513-85df1932a2f8 h1:atyLn1LOA2sA5Z/KpoDc0lolvEHRFebo3KopNV/glNA=
-github.com/angrycompany16/Network-go v0.0.0-20250306195513-85df1932a2f8/go.mod h1:Ygb5NEzOxpQ3PI2nv9WAg+UMnwB+uRDnLjZPJZhETA8=
 github.com/angrycompany16/Network-go v0.0.0-20250306234742-a6dd0f1e4f37 h1:oQ+dblHNZ5ErB4Muo2WdoRzyCyZTAA9Eq5rXNTqCq0E=
 github.com/angrycompany16/Network-go v0.0.0-20250306234742-a6dd0f1e4f37/go.mod h1:Ygb5NEzOxpQ3PI2nv9WAg+UMnwB+uRDnLjZPJZhETA8=
+github.com/angrycompany16/Network-go v0.0.0-20250306235422-d2b9ee4fa91b h1:QwDaK0umcvejbEF2ovlvkuvI/v3myZO2D2i7Px9MZDU=
+github.com/angrycompany16/Network-go v0.0.0-20250306235422-d2b9ee4fa91b/go.mod h1:Ygb5NEzOxpQ3PI2nv9WAg+UMnwB+uRDnLjZPJZhETA8=
 github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9 h1:kiCP9CQ4LQ7T7Y0rEZfTxngz/RBae1HbNNuiir4+MMg=
 github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9/go.mod h1:cPWgatV1wodJklk3N/0yuIiDGQ5bHkGIsHfgrktM6x0=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
