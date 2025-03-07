@@ -22,13 +22,13 @@ func InitFsm() {
 	initBetweenFloors()
 }
 
-func setAllLights(elevator Elevator) {
+// func SetSingleLight(floor int, button int, value bool) {
+
+// }
+
+func SetAllLights(elevator Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			if floor == 4 {
-				fmt.Println("floor ", floor)
-				fmt.Println("button ", btn)
-			}
 			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.Requests[floor][btn])
 		}
 	}
@@ -75,7 +75,7 @@ func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 		}
 	}
 
-	setAllLights(ThisElevator)
+	// setAllLights(ThisElevator)
 
 	if !DisablePrinting {
 		fmt.Printf("\nNew state:\n")
@@ -105,7 +105,7 @@ func OnFloorArrival(newFloor int) {
 			elevio.SetDoorOpenLamp(true)
 			ThisElevator = clearAtCurrentFloor(ThisElevator)
 			timer.StartTimer()
-			setAllLights(ThisElevator)
+			// setAllLights(ThisElevator)
 			ThisElevator.behaviour = doorOpen
 		}
 	}
@@ -136,7 +136,7 @@ func OnDoorTimeout() {
 		case doorOpen:
 			timer.StartTimer()
 			ThisElevator = clearAtCurrentFloor(ThisElevator)
-			setAllLights(ThisElevator)
+			// setAllLights(ThisElevator)
 		case moving, idle:
 			elevio.SetDoorOpenLamp(false)
 			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
@@ -157,4 +157,8 @@ func DoorObstructed() {
 
 func GetTimeout() time.Duration {
 	return ThisElevator.config.DoorOpenDuration
+}
+
+func GetRequestStatus(floor int, button int) bool {
+	return ThisElevator.Requests[floor][button]
 }

@@ -12,13 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/angrycompany16/Network-go/network/broadcast"
+	"github.com/angrycompany16/Network-go/network/connection"
 	"github.com/angrycompany16/Network-go/network/localip"
-	"github.com/angrycompany16/Network-go/network/transfer"
 	"github.com/angrycompany16/driver-go/elevio"
 	"github.com/mitchellh/mapstructure"
 )
-
-// TODO: Maybe switch to peer / backup system
 
 // NOTE:
 // Read this if the buffer size warning appears
@@ -29,7 +28,11 @@ import (
 // and
 // sudo sysctl -w net.core.wmem_max=7500000
 
-// TODO: remove This... pattern
+// TODO: remove ThisNode...etc pattern
+// TODO: Implement logging when in single elevator mode
+// Requires:
+// - Disconnect check
+// - Activity logging
 
 const (
 	stateBroadcastPort = 36251 // Akkordrekke
@@ -56,39 +59,23 @@ type ElevatorRequest struct {
 	Floor      int               `json:"Floor"`
 }
 
-type Ack struct{}
-
-// any message we send should be turned into one of these
-// TODO: Consider moving this into Network-go?
-type GeneralMsg struct {
-	TypeName string      `json:"TypeName"`
-	Data     interface{} `json:"Data"`
-}
+// TODO: Write getters
 
 // TODO: Make debugging listeners / Network-go easier
 // Should be possible to customize a little
 // Add requests as its own struct
+
 type node struct {
-	id              string
-	state           *elevalgo.Elevator
-	ip              net.IP
-	requestListener transfer.Listener
-	peers           []*peer
-	peersLock       *sync.Mutex
-	// BackupAckChan    chan Ack
+	Id                 string
+	state              *elevalgo.Elevator
+	ip                 net.IP
+	requestListener    *connection.Listener
+	peers              []*peer
+	peersLock          *sync.Mutex
 	localRequestChan   chan ElevatorRequest
 	unservicedRequests []ElevatorRequest
-	// localState       elevalgo.Elevator // The state the elevator should be in
 }
 
-// Problem: I want the request sender in the peer struct, but it would be nice to instantiate
-// a backup sender / listener at the same time
-// Solution: Maybe separate the connection parts from each other so that we can ...
-// That's going to be difficult, because the sending/connecting is tightly coupled
-// with the peer struct
-// Perhaps we can move the peer somewhere else and use only the node structs?
-// Not sure, it is quite a strange conundrum
-// For now, let's keep them in the same file
 type PeerInfo struct {
 	State     elevalgo.Elevator
 	Id        string
@@ -97,7 +84,7 @@ type PeerInfo struct {
 }
 
 type peer struct {
-	sender transfer.Sender
+	sender connection.Sender
 	info   PeerInfo
 }
 
@@ -106,15 +93,10 @@ func (n *node) timeout() {
 		n.peersLock.Lock()
 		for _, peer := range n.peers {
 			if peer.info.LastSeen.Add(timeout).Before(time.Now()) && peer.info.Connected {
-				// Better idea: Set peer node state to disconnected
-				// This allows us to reconnect easily
+				fmt.Println("Lost peer:", peer)
 				peer.info.Connected = false
-				// TODO: Try removing this to see if it's actually unnecessary
-				fmt.Println("Disabling send channel to peer:", peer)
 				peer.sender.QuitChan <- 1
-				n.requestListener.QuitChan <- peer.info.Id
-				// n.peers[i] = n.peers[len(n.peers)-1]
-				// n.peers = n.peers[:len(n.peers)-1]
+				n.requestListener.LostPeers[peer.info.Id] = true
 			}
 		}
 		n.peersLock.Unlock()
@@ -124,25 +106,16 @@ func (n *node) timeout() {
 func (n *node) sendLifeSignal(signalChan chan (LifeSignal)) {
 	for {
 		// TODO: move this out into its own function
-		derefPeers := make([]PeerInfo, 0)
+		peerInfoList := make([]PeerInfo, 0)
 		for _, peer := range n.peers {
-
-			// for i := 0; i < elevalgo.NumFloors; i++ {
-			// 	for j := 0; j < elevalgo.NumButtons; j++ {
-			// 		if peer.info.State.Requests[i][j] {
-			// 			fmt.Println("Something is backed up")
-			// 		}
-			// 	}
-			// }
-
-			derefPeers = append(derefPeers, peer.info)
+			peerInfoList = append(peerInfoList, peer.info)
 		}
 		signal := LifeSignal{
 			ListenerAddr:       n.requestListener.Addr,
-			SenderId:           n.id,
+			SenderId:           n.Id,
 			State:              *n.state,
 			UnservicedRequests: n.unservicedRequests,
-			WorldView:          derefPeers,
+			WorldView:          peerInfoList,
 		}
 
 		signalChan <- signal
@@ -150,33 +123,33 @@ func (n *node) sendLifeSignal(signalChan chan (LifeSignal)) {
 	}
 }
 
-// We need to somehow read the requests from the information given by the other peers:
-// My idea: Just take me OR given info
 func (n *node) readLifeSignals(signalChan chan (LifeSignal)) {
 LifeSignals:
 	for lifeSignal := range signalChan {
-		if n.id == lifeSignal.SenderId {
+		if n.Id == lifeSignal.SenderId {
 			continue
 		}
 
 		n.peersLock.Lock()
 		for _, _peer := range n.peers {
 			if _peer.info.Id == lifeSignal.SenderId {
+				_peer.info.LastSeen = time.Now()
+				_peer.info.State = lifeSignal.State
+
+				// IDEA: Somehow the problem I had solved itself
 				if !_peer.info.Connected {
-					fmt.Println("Connect peer")
 					n.ConnectPeer(_peer, lifeSignal)
-					n.GetLostRequests(lifeSignal)
 					n.peersLock.Unlock()
 					continue LifeSignals
 				}
 
-				_peer.info.LastSeen = time.Now()
-				_peer.info.State = lifeSignal.State
+				if _peer.sender.Addr.Port != lifeSignal.ListenerAddr.Port {
+					fmt.Printf("Sending to port %d, but peer is listening on port %d, making new sender...\n", _peer.sender.Addr.Port, lifeSignal.ListenerAddr.Port)
+					_peer.sender.QuitChan <- 1
+					n.ConnectPeer(_peer, lifeSignal)
+				}
 
-				// TODO: [IN network.go] we can safely remove sender.Connnected
-				// If we receive an unserviced request, update the worldview
 				for _, req := range lifeSignal.UnservicedRequests {
-					fmt.Println("Someone else had an unserviced request")
 					_peer.info.State.Requests[req.Floor][req.ButtonType] = true
 				}
 
@@ -189,7 +162,7 @@ LifeSignals:
 			}
 		}
 
-		requestSender := transfer.NewSender(lifeSignal.ListenerAddr, n.id)
+		requestSender := connection.NewSender(lifeSignal.ListenerAddr, n.Id)
 
 		newPeer := newPeer(requestSender, lifeSignal.State, lifeSignal.SenderId)
 
@@ -197,26 +170,27 @@ LifeSignals:
 		fmt.Println("New peer added: ")
 		fmt.Println(newPeer)
 
+		n.GetLostRequests(lifeSignal)
+
 		n.peersLock.Unlock()
 	}
 }
 
 func (n *node) ConnectPeer(_peer *peer, lifeSignal LifeSignal) {
 	_peer.sender.Addr = lifeSignal.ListenerAddr
+	_peer.sender.Init()
 	go _peer.sender.Send()
-	<-_peer.sender.ReadyChan
 	_peer.info.Connected = true
 }
 
 func (n *node) GetLostRequests(lifeSignal LifeSignal) {
 	for _, _peer := range lifeSignal.WorldView {
-		if _peer.Id != n.id {
+		if _peer.Id != n.Id {
 			continue
 		}
 
 		for i := 0; i < elevalgo.NumFloors; i++ {
 			for j := 0; j < elevalgo.NumButtons; j++ {
-				// fmt.Println(_peer.State.Requests[i][j])
 				if !_peer.State.Requests[i][j] {
 					continue
 				}
@@ -232,47 +206,47 @@ func (n *node) GetLostRequests(lifeSignal LifeSignal) {
 
 func (n *node) CheckUnservicedRequests(lifeSignal LifeSignal) {
 	for _, _peer := range lifeSignal.WorldView {
-		// This is the sender's view of me
-		if _peer.Id == n.id {
+		if _peer.Id == n.Id {
 			for i, req := range n.unservicedRequests {
 				if _peer.State.Requests[req.Floor][req.ButtonType] {
-					// The request has been backed up
-					// Time to service the request
-					fmt.Println("Someone has backed up my unserviced request, I can now service it!")
+					// TODO: Maybe check if every peer has backed up the request
 					n.localRequestChan <- req
 					// NOTE: This will reorder the requests
-					n.unservicedRequests[i] = n.unservicedRequests[len(n.peers)-1]
-					n.unservicedRequests = n.unservicedRequests[:len(n.peers)-1]
+					n.unservicedRequests[i] = n.unservicedRequests[len(n.unservicedRequests)-1]
+					n.unservicedRequests = n.unservicedRequests[:len(n.unservicedRequests)-1]
 				}
 			}
 		}
 	}
 }
 
-// Other idea: We can give the elevator a list of requests, and then when we compare
-// the state we can check if someone is broadcasting the request. If they are, send it
-// back to main.go and we have our guarantee.
-func (n *node) TakeRequest(button elevio.ButtonEvent) {
-	req := ElevatorRequest{
-		SenderId:   n.id,
-		ButtonType: button.Button,
-		Floor:      button.Floor,
+// TODO: Learn more about go's concurrency patterns and reconsider the peersLock idea
+func (n *node) TakeRequest(request ElevatorRequest, prioritizeSelf bool) {
+	if prioritizeSelf {
+		n.unservicedRequests = append(n.unservicedRequests, request)
+		return
 	}
 
 	assigneeID := n.getBestElevator()
 
-	if assigneeID == n.id {
-		// TODO: check if the request already exists
-		if slices.Contains(n.unservicedRequests, req) {
+	if assigneeID == n.Id {
+		if slices.Contains(n.unservicedRequests, request) {
 			return
 		}
-		n.unservicedRequests = append(n.unservicedRequests, req)
+		n.unservicedRequests = append(n.unservicedRequests, request)
+	} else {
+		// Send the request off to the peer
+		for _, _peer := range n.peers {
+			if _peer.info.Id == assigneeID {
+				_peer.sender.DataChan <- request
+			}
+		}
 	}
 }
 
 func (n *node) SelfRequestNode(button elevio.ButtonEvent) ElevatorRequest {
 	req := ElevatorRequest{
-		SenderId:   n.id,
+		SenderId:   n.Id,
 		ButtonType: button.Button,
 		Floor:      button.Floor,
 	}
@@ -285,84 +259,65 @@ func (n *node) SelfRequestNode(button elevio.ButtonEvent) ElevatorRequest {
 // TODO: Can surely be written in a nicer way
 // Returns the id of the elevator that should take the request
 func (n *node) getBestElevator() string {
-	return n.id
-
-	// elevatorList := []elevalgo.Elevator{*n.state}
-	// for _, peer := range n.peers {
-	// 	elevatorList = append(elevatorList, peer.state)
-	// }
-
-	// var winnerID string
-	// n.peersLock.Lock() // Changing the peer list during this operation is probably not a good
-	// orderList := elevalgo.GetBestOrder(elevatorList)
-	// if orderList[0] == 0 {
-	// 	winnerID = n.id
-	// } else {
-	// 	winnerID = n.peers[orderList[0]-1].id
-	// }
-	// n.peersLock.Unlock()
-
-	// return winnerID
+	if n.peers != nil {
+		return n.peers[0].info.Id
+	} else {
+		return n.Id
+	}
 }
 
 // TODO: Can simplify a lot
-func (n *node) PipeListener(requestRx chan ElevatorRequest, ackRx chan Ack, recordRx chan Record) {
-	for msg := range n.requestListener.DataChan {
-		var message GeneralMsg
-		mapstructure.Decode(msg, &message)
+func (n *node) PipeListener(requestRx chan ElevatorRequest) {
+	for data := range n.requestListener.DataChan {
+		var message connection.Message
+		mapstructure.Decode(data, &message)
+
 		switch message.TypeName {
 		case reflect.TypeOf(ElevatorRequest{}).Name():
 			var request ElevatorRequest
 			err := mapstructure.Decode(message.Data, &request)
 			if err != nil {
-				log.Fatal("Died")
+				fmt.Println("Error when decoding elevator request:", err)
+				fmt.Println("Request was", data)
+				continue
 			}
 			requestRx <- request
-		case reflect.TypeOf(Record{}).Name():
-			var record Record
-			err := mapstructure.Decode(message.Data, &record)
-			if err != nil {
-				log.Fatal("Died record??")
-			}
-			recordRx <- record
 		}
 	}
 }
 
+func (n *node) GetPeerList() []PeerInfo {
+	list := make([]PeerInfo, 0)
+	for _, _peer := range n.peers {
+		list = append(list, _peer.info)
+	}
+	return list
+}
+
 func InitNode(state *elevalgo.Elevator, localRequestChan chan ElevatorRequest, id string) {
-	for {
-		if id == "" {
-			r := rand.Int()
-			fmt.Println("No id was given. Using randomly generated number", r)
-			id = strconv.Itoa(r)
-		}
-
-		// NOTE: a minor problem: When there is no internet connection, this code may block
-		// forever. Is there a way to solve this?
-		// TODO: Yes, timeout
-		ip, err := localip.LocalIP()
-		if err != nil {
-			fmt.Println("Could not get local IP address. Error:", err)
-			fmt.Println("Retrying...")
-			time.Sleep(time.Second)
-			continue
-		}
-
-		IP := net.ParseIP(ip)
-
-		ThisNode = newElevator(id, IP, state, localRequestChan)
-
-		break
+	if id == "" {
+		r := rand.Int()
+		fmt.Println("No id was given. Using randomly generated number", r)
+		id = strconv.Itoa(r)
 	}
 
+	ip, err := localip.LocalIP()
+	if err != nil {
+		log.Fatal("Could not get local IP address. Error:", err)
+	}
+
+	IP := net.ParseIP(ip)
+
+	ThisNode = newElevator(id, IP, state, localRequestChan)
+
+	ThisNode.requestListener.Init()
 	go ThisNode.requestListener.Listen()
-	<-ThisNode.requestListener.ReadyChan
 
 	fmt.Println("Successfully created new network node: ")
 	fmt.Println(ThisNode)
 
-	go transfer.BroadcastSender(stateBroadcastPort, LifeSignalChan)
-	go transfer.BroadcastReceiver(stateBroadcastPort, LifeSignalChan)
+	go broadcast.BroadcastSender(stateBroadcastPort, LifeSignalChan)
+	go broadcast.BroadcastReceiver(stateBroadcastPort, LifeSignalChan)
 
 	go ThisNode.timeout()
 	go ThisNode.sendLifeSignal(LifeSignalChan)
@@ -371,12 +326,12 @@ func InitNode(state *elevalgo.Elevator, localRequestChan chan ElevatorRequest, i
 
 func newElevator(id string, ip net.IP, state *elevalgo.Elevator, localRequestChan chan ElevatorRequest) node {
 	return node{
-		id:    id,
+		Id:    id,
 		state: state,
 		ip:    ip,
-		requestListener: transfer.NewListener(net.UDPAddr{
+		requestListener: connection.NewListener(net.UDPAddr{
 			IP:   ip,
-			Port: transfer.GetAvailablePort(),
+			Port: connection.GetAvailablePort(),
 		}),
 		localRequestChan: localRequestChan,
 		peers:            make([]*peer, 0),
@@ -384,7 +339,7 @@ func newElevator(id string, ip net.IP, state *elevalgo.Elevator, localRequestCha
 	}
 }
 
-func newPeer(requestSender transfer.Sender, state elevalgo.Elevator, id string) *peer {
+func newPeer(requestSender connection.Sender, state elevalgo.Elevator, id string) *peer {
 	return &peer{
 		sender: requestSender,
 		info:   newPeerInfo(state, id),
@@ -401,9 +356,9 @@ func newPeerInfo(state elevalgo.Elevator, id string) PeerInfo {
 }
 
 func (n node) String() string {
-	return fmt.Sprintf("Elevator %s, listening on: %s\n", n.id, &n.requestListener.Addr)
+	return fmt.Sprintf("Elevator %s, listening on: %s\n", n.Id, &n.requestListener.Addr)
 }
 
 func (p peer) String() string {
-	return fmt.Sprintf("Peer %s, Sender object:\n %s\n", p.info.Id, p.sender)
+	return fmt.Sprintf("------- Peer ----\n ~ id: %s\n ~ sends to: %s\n", p.info.Id, &p.sender.Addr)
 }
