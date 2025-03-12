@@ -7,31 +7,16 @@ import (
 	"time"
 )
 
-var (
-	timeout = time.Millisecond * 500
-	// ThisNode node
-	// LifeSignalChan = make(chan Heartbeat)
-)
-
 type peer struct {
-	info PeerInfo
-}
-
-type PeerInfo struct {
 	State     elevalgo.Elevator
-	Id        string
+	Id        int
 	LastSeen  time.Time
 	Connected bool
 }
 
-func newPeer(state elevalgo.Elevator, id string) peer {
+// TODO: Might be easier to not use Connected
+func newPeer(state elevalgo.Elevator, id int) peer {
 	return peer{
-		info: newPeerInfo(state, id),
-	}
-}
-
-func newPeerInfo(state elevalgo.Elevator, id string) PeerInfo {
-	return PeerInfo{
 		State:     state,
 		Id:        id,
 		LastSeen:  time.Now(),
@@ -40,19 +25,12 @@ func newPeerInfo(state elevalgo.Elevator, id string) PeerInfo {
 }
 
 func (p peer) String() string {
-	return fmt.Sprintf("------- Peer ----\n ~ id: %s\n", p.info.Id)
+	return fmt.Sprintf("------- Peer ----\n ~ id: %s\n", p.Id)
 }
 
-func (n *node) ExtractPeerInfo() map[string]PeerInfo {
+func (n *node) ExtractPeerState() map[int]elevalgo.Elevator {
 	return utils.MapMap(
 		n.peers,
-		func(_peer peer) PeerInfo { return _peer.info },
-	)
-}
-
-func (n *node) ExtractPeerState() map[string]elevalgo.Elevator {
-	return utils.MapMap(
-		n.peers,
-		func(_peer peer) elevalgo.Elevator { return _peer.info.State },
+		func(_peer peer) elevalgo.Elevator { return _peer.State },
 	)
 }

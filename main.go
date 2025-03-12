@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"internal/itoa"
 	elevalgo "sanntidslab/elev_al_go"
 	"sanntidslab/elev_al_go/timer"
 	"sanntidslab/p2p"
@@ -14,8 +15,8 @@ import (
 
 const (
 	RequestBufferSize   = 1
-	defaultElevatorPort = "15657" /* I think? */
-	stateBroadcastPort  = 36251   // Akkordrekke
+	defaultElevatorPort = 15657 /* I think? */
+	stateBroadcastPort  = 36251 // Akkordrekke
 )
 
 // TODO: *Read* code complete checklist properly and at least try to make the code
@@ -32,17 +33,23 @@ const (
 
 // TODO: Convert the id into int datatype
 
+// A note on convention before i forget:
+// - Orders: Will be executed by elevator, will cause lights to activate
+// - Requests: Abstract orders that haven't yet been confirmed/acknowledged
+
+// TODO: Consider: Should obstruction be its own process?
+
 func main() {
 	// ---- Flags
-	var port, id string
-	flag.StringVar(&port, "port", defaultElevatorPort, "Elevator server port")
-	flag.StringVar(&id, "id", "", "Network node id")
+	var port, id int
+	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
+	flag.IntVar(&id, "id", 0, "Network node id")
 	fmt.Println("Started!")
 
 	flag.Parse()
 
 	// ---- Initialize elevator
-	elevio.Init("localhost:"+port, elevalgo.NumFloors)
+	elevio.Init("localhost:"+itoa.Itoa(port), elevalgo.NumFloors)
 	elevalgo.InitFsm()
 
 	drv_buttons := make(chan elevio.ButtonEvent)
@@ -58,12 +65,10 @@ func main() {
 	timer.StartTimer()
 
 	// ---- Initialize networking
-	// elevatorRequests := make(chan p2p.RequestInfo) // Elevator <- Node
-	// pendingRequestChan := make(chan requests.PendingRequest)
+	orderChan := make(chan requests.RequestInfo)
 	peerRequestChan := make(chan requests.PeerRequest) // Node <- Network
 	heartbeatChan := make(chan p2p.Heartbeat)
-
-	nodeInstance := p2p.InitNode(&elevalgo.ThisElevator, id)
+	elevatorStateChan := make(chan elevalgo.Elevator)
 
 	go broadcast.BroadcastSender(stateBroadcastPort, heartbeatChan)
 	go broadcast.BroadcastReceiver(stateBroadcastPort, heartbeatChan)
@@ -71,13 +76,12 @@ func main() {
 	go broadcast.BroadcastSender(p2p.RequestBroadCastPort, peerRequestChan)
 	go broadcast.BroadcastReceiver(p2p.RequestBroadCastPort, peerRequestChan)
 
+	go p2p.NodeProcess(heartbeatChan, peerRequestChan, drv_buttons, elevatorStateChan, orderChan, id)
+
 	for {
 		select {
-		case buttonEvent := <-drv_buttons:
-			// Put the message into the pending message struct
-			requestInfo := requests.NewRequestInfo(buttonEvent)
-			assigneeID := nodeInstance.Assign(requestInfo)
-			nodeInstance.SendRequest(requestInfo, assigneeID)
+		case requestInfo := <-orderChan:
+			elevalgo.RequestButtonPressed(requestInfo.Floor, requestInfo.ButtonType)
 		case floor := <-drv_floors:
 			elevalgo.OnFloorArrival(floor)
 		case obstructionEvent := <-drv_obstr:
@@ -85,15 +89,9 @@ func main() {
 		case <-timer.TimeoutChan:
 			timer.StopTimer()
 			elevalgo.OnDoorTimeout()
-		case heartbeat := <-heartbeatChan:
-			nodeInstance.ReceiveHeartbeat(heartbeat)
-		case peerRequest := <-peerRequestChan:
-			nodeInstance.TryReceiveRequest(peerRequest)
+
 		default:
-			nodeInstance.SendHeartbeat(heartbeatChan)
-			nodeInstance.CheckLostPeers()
-			p2p.BroadcastPeerRequests(peerRequestChan, nodeInstance.GetPeerRequests(), nodeInstance.GetPeers())
-			timer.CheckTimeout()
+			elevatorStateChan <- elevalgo.GetState()
 		}
 	}
 }

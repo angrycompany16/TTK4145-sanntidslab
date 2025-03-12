@@ -14,15 +14,14 @@ const (
 )
 
 var (
-	ThisElevator Elevator
+	elevator Elevator
 )
 
-func InitFsm() {
-	ThisElevator = MakeUninitializedelevator()
-	initBetweenFloors()
-}
+// TODO: Rewrite to functional
 
-// TODO: rewrite with classical struct construction
+func InitFsm() Elevator {
+	return MakeUninitializedelevator()
+}
 
 func SetAllLights(elevator Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
@@ -34,8 +33,8 @@ func SetAllLights(elevator Elevator) {
 
 func initBetweenFloors() {
 	elevio.SetMotorDirection(elevio.MD_Down)
-	ThisElevator.direction = down
-	ThisElevator.behaviour = moving
+	elevator.direction = down
+	elevator.behaviour = moving
 }
 
 // TODO: Now we have no struct in this, but we still have a singleton (even worse, it's
@@ -49,42 +48,41 @@ func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 
 	if !DisablePrinting {
 		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
-		ThisElevator.print()
+		elevator.print()
 	}
 
-	switch ThisElevator.behaviour {
+	switch elevator.behaviour {
 	case doorOpen:
-		if ThisElevator.shouldClearImmediately(buttonFloor, buttonType) {
+		if elevator.shouldClearImmediately(buttonFloor, buttonType) {
 			timer.StartTimer()
 		} else {
-			ThisElevator.Requests[buttonFloor][buttonType] = true
+			elevator.Requests[buttonFloor][buttonType] = true
 		}
 	case moving:
-		ThisElevator.Requests[buttonFloor][buttonType] = true
+		elevator.Requests[buttonFloor][buttonType] = true
 	case idle:
-		ThisElevator.Requests[buttonFloor][buttonType] = true
-		pair := ThisElevator.chooseDirection()
-		ThisElevator.direction = pair.dir
-		ThisElevator.behaviour = pair.behaviour
+		elevator.Requests[buttonFloor][buttonType] = true
+		pair := elevator.chooseDirection()
+		elevator.direction = pair.dir
+		elevator.behaviour = pair.behaviour
 		switch pair.behaviour {
 		case doorOpen:
 			elevio.SetDoorOpenLamp(true)
 			timer.StartTimer()
-			ThisElevator = clearAtCurrentFloor(ThisElevator)
+			elevator = clearAtCurrentFloor(elevator)
 		case moving:
-			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
+			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
 		}
 	}
 
-	// setAllLights(ThisElevator)
+	// setAllLights(e)
 
 	if !DisablePrinting {
 		fmt.Printf("\nNew state:\n")
-		ThisElevator.print()
+		elevator.print()
 	}
 }
 
-// TODO: MAke this a bit better (some stuff can be extracted to a function)
 func OnFloorArrival(newFloor int) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
@@ -93,27 +91,27 @@ func OnFloorArrival(newFloor int) {
 
 	if !DisablePrinting {
 		fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
-		ThisElevator.print()
+		elevator.print()
 	}
-	ThisElevator.floor = newFloor
+	elevator.floor = newFloor
 
-	elevio.SetFloorIndicator(ThisElevator.floor)
+	elevio.SetFloorIndicator(elevator.floor)
 
-	switch ThisElevator.behaviour {
+	switch elevator.behaviour {
 	case moving:
-		if ThisElevator.shouldStop() {
+		if elevator.shouldStop() {
 			elevio.SetMotorDirection(elevio.MD_Stop)
 			elevio.SetDoorOpenLamp(true)
-			ThisElevator = clearAtCurrentFloor(ThisElevator)
+			elevator = clearAtCurrentFloor(elevator)
 			timer.StartTimer()
-			// setAllLights(ThisElevator)
-			ThisElevator.behaviour = doorOpen
+			// setAllLights(e)
+			elevator.behaviour = doorOpen
 		}
 	}
 
 	if !DisablePrinting {
 		fmt.Printf("\nNew state:\n")
-		ThisElevator.print()
+		elevator.print()
 	}
 }
 
@@ -125,29 +123,29 @@ func OnDoorTimeout() {
 
 	if !DisablePrinting {
 		fmt.Printf("\n\n%s()\n", frame.Function)
-		ThisElevator.print()
+		elevator.print()
 	}
-	switch ThisElevator.behaviour {
+	switch elevator.behaviour {
 	case doorOpen:
-		pair := ThisElevator.chooseDirection()
-		ThisElevator.direction = pair.dir
-		ThisElevator.behaviour = pair.behaviour
+		pair := elevator.chooseDirection()
+		elevator.direction = pair.dir
+		elevator.behaviour = pair.behaviour
 
-		switch ThisElevator.behaviour {
+		switch elevator.behaviour {
 		case doorOpen:
 			timer.StartTimer()
-			ThisElevator = clearAtCurrentFloor(ThisElevator)
-			// setAllLights(ThisElevator)
+			elevator = clearAtCurrentFloor(elevator)
+			// setAllLights(e)
 		case moving, idle:
 			fmt.Println("Closing door")
 			elevio.SetDoorOpenLamp(false)
-			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
+			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
 		}
 	}
 
 	if !DisablePrinting {
 		fmt.Printf("\nNew state:\n")
-		ThisElevator.print()
+		elevator.print()
 	}
 }
 
@@ -158,15 +156,19 @@ func DoorObstructed(isObstructed bool) {
 
 	fmt.Println("obstr")
 
-	if ThisElevator.behaviour == doorOpen {
+	if elevator.behaviour == doorOpen {
 		timer.StartTimer()
 	}
 }
 
 func GetTimeout() time.Duration {
-	return ThisElevator.config.DoorOpenDuration
+	return elevator.config.DoorOpenDuration
 }
 
 func GetRequestStatus(floor int, button int) bool {
-	return ThisElevator.Requests[floor][button]
+	return elevator.Requests[floor][button]
+}
+
+func GetState() Elevator {
+	return elevator
 }
