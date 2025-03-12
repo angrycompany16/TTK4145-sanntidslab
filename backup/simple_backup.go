@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	thisBackup = Backup{}
+	thisBackup = backup{}
 )
 
-type Backup struct {
+type backup struct {
 	backupOrders []backupOrder
 	aliveLock    *sync.Mutex
 }
@@ -49,14 +49,12 @@ func BackupFSM() {
 		case order := <- orderChan:
 			requestBackup(order) //success is returned, should we do something with it?
 		
-		
 		}
 	}
 }
 
 // TODO: Connect backup to life signals from network.go
 func updateBackup(lifeSignal LifeSignal) {
-
 	thisBackup.aliveLock.Lock()
 	defer thisBackup.aliveLock.Unlock()
 
@@ -112,22 +110,18 @@ func requestBackup(request ElevatorRequest) bool {
 }
 
 func (n *node) pipeAcknowledge(answerChan chan acknowledge, doneChan chan bool) {
-	for {
-		select {
-		case <-doneChan:
+	
+	for msg := range n.listener.DataChan {
+		if <-doneChan {
 			return
-
-		default:
-			for msg := range n.listener.DataChan {
-				var a acknowledge
-				n.listener.DecodeMsg(&msg, &a)
-				answerChan <- a
-			}
-
-			
-		}
+		}	
+		
+		var a acknowledge
+		n.listener.DecodeMsg(&msg, &a)
+		answerChan <- a		
 	}
 }
+
 
 func (n *node) pipeOrderListener(orderChan chan backupOrder) {
 	for msg := range n.listener.DataChan {
@@ -149,7 +143,6 @@ func (n *node) sendAcknowledge(success acknowledge, id string) {
 func acceptingBackup(order backupOrder) (success acknowledge) {
 	thisBackup.backupOrders = append(thisBackup.backupOrders, order)
 	return true
-
 }
 
 // TODO: log all calls done when DC
