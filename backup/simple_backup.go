@@ -28,27 +28,26 @@ type backupOrder struct {
 
 type acknowledge bool
 
-
 func BackupFSM() {
+
 	backupRequestChan := make(chan backupOrder)
 	orderChan := make(chan ElevatorRequest)
-	
+
 	go ThisNode.pipeOrderListener(backupRequestChan)
 	go ThisNode.readLifeSignals(LifeSignalChan)
 
 	for {
 		select {
+		case lifeSignal := <-LifeSignalChan:
+			updateBackup(lifeSignal)
+
+		case order := <-orderChan:
+			requestBackup(order) //success is returned, should we do something with it?
+			// Send into main
 		case backupRequest := <-backupRequestChan:
 			acception := acceptingBackup(backupRequest)
 			receiverId := backupRequest.id
 			ThisNode.sendAcknowledge(acception, receiverId)
-
-		case lifeSignal := <-LifeSignalChan:
-			updateBackup(lifeSignal)
-
-		case order := <- orderChan:
-			requestBackup(order) //success is returned, should we do something with it?
-		
 		}
 	}
 }
@@ -110,18 +109,17 @@ func requestBackup(request ElevatorRequest) bool {
 }
 
 func (n *node) pipeAcknowledge(answerChan chan acknowledge, doneChan chan bool) {
-	
+
 	for msg := range n.listener.DataChan {
 		if <-doneChan {
 			return
-		}	
-		
+		}
+
 		var a acknowledge
 		n.listener.DecodeMsg(&msg, &a)
-		answerChan <- a		
+		answerChan <- a
 	}
 }
-
 
 func (n *node) pipeOrderListener(orderChan chan backupOrder) {
 	for msg := range n.listener.DataChan {
