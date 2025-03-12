@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	NumFloors  = 4
-	NumButtons = 3
+	NumFloors      = 4
+	numCabButtons  = 1
+	numHallButtons = 2
+	NumButtons     = numCabButtons + numHallButtons
 )
 
 var ConfigPath = path.Join("elev_al_go", "elevator_config.yaml")

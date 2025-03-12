@@ -13,15 +13,15 @@
             "state": {
               "type": "canvas",
               "state": {
-                "file": "Sanntid Peer2Peer updated.canvas",
+                "file": "Elevator V2.canvas",
                 "viewState": {
-                  "x": 1105.4410202240992,
-                  "y": 2923.077925507951,
-                  "zoom": -0.02070709632582563
+                  "x": 488.9020617055875,
+                  "y": 837.4661166334154,
+                  "zoom": 0
                 }
               },
               "icon": "lucide-layout-dashboard",
-              "title": "Sanntid Peer2Peer updated"
+              "title": "Elevator V2"
             }
           },
           {
@@ -41,8 +41,7 @@
               "title": "Sanntid Peer2Peer updated"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -184,11 +183,13 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "ef0a12ed72214f1f",
+  "active": "54df57148674428c",
   "lastOpenFiles": [
-    "Sanntid Peer2Peer forslag.canvas",
     "Sanntid Peer2Peer updated.canvas",
+    "Elevator V2.canvas",
     "Untitled.md",
+    "Elevato.md",
+    "Sanntid Peer2Peer forslag.canvas",
     "test.md",
     "SAnntid heis distributed.md",
     "Welcome.md"

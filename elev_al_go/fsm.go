@@ -22,9 +22,7 @@ func InitFsm() {
 	initBetweenFloors()
 }
 
-// func SetSingleLight(floor int, button int, value bool) {
-
-// }
+// TODO: rewrite with classical struct construction
 
 func SetAllLights(elevator Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
@@ -40,6 +38,9 @@ func initBetweenFloors() {
 	ThisElevator.behaviour = moving
 }
 
+// TODO: Now we have no struct in this, but we still have a singleton (even worse, it's
+// public...), and sure, defining these functions as methods on the struct means that
+// they can modify any value in the struct, but they can do that now as well???
 func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
@@ -138,6 +139,7 @@ func OnDoorTimeout() {
 			ThisElevator = clearAtCurrentFloor(ThisElevator)
 			// setAllLights(ThisElevator)
 		case moving, idle:
+			fmt.Println("Closing door")
 			elevio.SetDoorOpenLamp(false)
 			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
 		}
@@ -149,7 +151,13 @@ func OnDoorTimeout() {
 	}
 }
 
-func DoorObstructed() {
+func DoorObstructed(isObstructed bool) {
+	if !isObstructed {
+		return
+	}
+
+	fmt.Println("obstr")
+
 	if ThisElevator.behaviour == doorOpen {
 		timer.StartTimer()
 	}

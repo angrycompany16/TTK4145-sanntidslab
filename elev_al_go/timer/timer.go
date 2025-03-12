@@ -1,12 +1,17 @@
 package timer
 
-import "time"
+import (
+	"time"
+)
+
+// Communicate with rest of system via channels
 
 var (
-	pollRate = 20 * time.Millisecond
-	// timeOut   = 3 * time.Second
-	startTime time.Time
-	active    bool
+	startTime     = time.Now()
+	active        = true
+	timedOutCache = false
+	timeout       = time.Second       // Default value
+	TimeoutChan   = make(chan int, 1) // Default value
 )
 
 func StartTimer() {
@@ -18,14 +23,14 @@ func StopTimer() {
 	active = false
 }
 
-func PollTimer(receiver chan<- bool, timeout time.Duration) {
-	prev := false
-	for {
-		time.Sleep(pollRate)
-		timedOut := active && time.Since(startTime) > timeout
-		if timedOut && timedOut != prev {
-			receiver <- true
-		}
-		prev = timedOut
+func CheckTimeout() {
+	timedOut := active && time.Since(startTime) > timeout
+	if timedOut && timedOut != timedOutCache {
+		TimeoutChan <- 1
 	}
+	timedOutCache = timedOut
+}
+
+func SetTimeout(_timeout time.Duration) {
+	timeout = _timeout
 }
