@@ -9,18 +9,18 @@ import (
 
 type peer struct {
 	State     elevalgo.Elevator
-	Id        int
+	Id        string
 	LastSeen  time.Time
 	Connected bool
 }
 
 // TODO: Might be easier to not use Connected
-func newPeer(state elevalgo.Elevator, id int) peer {
+func newPeer(state elevalgo.Elevator, id string) peer {
 	return peer{
 		State:     state,
 		Id:        id,
 		LastSeen:  time.Now(),
-		Connected: false,
+		Connected: true,
 	}
 }
 
@@ -28,7 +28,7 @@ func (p peer) String() string {
 	return fmt.Sprintf("------- Peer ----\n ~ id: %s\n", p.Id)
 }
 
-func (n *node) ExtractPeerState() map[int]elevalgo.Elevator {
+func (n *node) ExtractPeerState() map[string]elevalgo.Elevator {
 	return utils.MapMap(
 		n.peers,
 		func(_peer peer) elevalgo.Elevator { return _peer.State },

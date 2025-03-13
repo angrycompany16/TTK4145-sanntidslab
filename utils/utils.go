@@ -1,5 +1,8 @@
 package utils
 
+// For debugging
+func UNUSED(x ...interface{}) {}
+
 // Given an array of structs, return an array of the
 func Filter[V any](input []V, f func(V) bool) (result []V) {
 	for _, item := range input {
@@ -21,6 +24,14 @@ func MapMap[V any, W any, X comparable](input map[X]V, f func(V) W) map[X]W {
 	result := make(map[X]W, 0)
 	for key, item := range input {
 		result[key] = f(item)
+	}
+	return result
+}
+
+func DuplicateMap[V any, X comparable](input map[X]V) map[X]V {
+	result := make(map[X]V, 0)
+	for key, item := range input {
+		result[key] = item
 	}
 	return result
 }

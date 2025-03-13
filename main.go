@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"internal/itoa"
 	elevalgo "sanntidslab/elev_al_go"
 	"sanntidslab/elev_al_go/timer"
 	"sanntidslab/p2p"
 	"sanntidslab/p2p/requests"
+	"strconv"
 
 	"github.com/angrycompany16/Network-go/network/broadcast"
 	"github.com/angrycompany16/driver-go/elevio"
@@ -41,15 +41,16 @@ const (
 
 func main() {
 	// ---- Flags
-	var port, id int
+	var port int
+	var id string
 	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
-	flag.IntVar(&id, "id", 0, "Network node id")
+	flag.StringVar(&id, "id", "", "Network node id")
 	fmt.Println("Started!")
 
 	flag.Parse()
 
 	// ---- Initialize elevator
-	elevio.Init("localhost:"+itoa.Itoa(port), elevalgo.NumFloors)
+	elevio.Init("localhost:"+strconv.Itoa(port), elevalgo.NumFloors)
 	elevalgo.InitFsm()
 
 	drv_buttons := make(chan elevio.ButtonEvent)
@@ -89,9 +90,9 @@ func main() {
 		case <-timer.TimeoutChan:
 			timer.StopTimer()
 			elevalgo.OnDoorTimeout()
-
 		default:
 			elevatorStateChan <- elevalgo.GetState()
+			timer.CheckTimeout()
 		}
 	}
 }

@@ -1,9 +1,6 @@
 package requests
 
 import (
-	"sanntidslab/utils"
-	"slices"
-
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
@@ -13,35 +10,36 @@ import (
 
 // A type of request that is waiting to be received by some peer
 type PeerRequest struct {
-	RequestInfo RequestInfo
-	AssigneeID  string
+	// RequestInfo RequestInfo
+	AssigneeID string
 }
 
 // func (p *PeerRequest) getRequestInfo() RequestInfo {
 // 	return p.RequestInfo
 // }
 
-func NewPeerRequest(req RequestInfo, assigneeID string) PeerRequest {
+func NewPeerRequest(assigneeID string) PeerRequest {
 	return PeerRequest{
-		RequestInfo: req,
-		AssigneeID:  assigneeID,
+		// RequestInfo: req,
+		AssigneeID: assigneeID,
 	}
 }
 
 // A type of request that is waiting to be acked by peers
 type PendingRequest struct {
-	RequestInfo RequestInfo
-	Acks        map[string]bool // Array of booleans indicating whether the peers have accepted this request (i.e. whether they have backed it up or not)
+	// RequestInfo RequestInfo
+	Active bool            // Is there a request here?
+	Acks   map[string]bool // Array of booleans indicating whether the peers have accepted this request (i.e. whether they have backed it up or not)
 }
 
 // func (p *PendingRequest) getRequestInfo() RequestInfo {
 // 	return p.RequestInfo
 // }
 
-func NewPendingRequest(req RequestInfo) PendingRequest {
+func NewPendingRequest() PendingRequest {
 	return PendingRequest{
-		RequestInfo: req,
-		Acks:        make(map[string]bool),
+		// RequestInfo: req,
+		Acks: make(map[string]bool),
 	}
 }
 
@@ -57,20 +55,20 @@ func NewRequestInfo(buttonEvent elevio.ButtonEvent) RequestInfo {
 	}
 }
 
-func ExtractPeerRequestInfo(input []PeerRequest) []RequestInfo {
-	return utils.MapSlice(
-		input,
-		func(req PeerRequest) RequestInfo { return req.RequestInfo },
-	)
-}
+// func ExtractPeerRequestInfo(input []PeerRequest) []RequestInfo {
+// 	return utils.MapSlice(
+// 		input,
+// 		func(req PeerRequest) RequestInfo { return req.RequestInfo },
+// 	)
+// }
 
-func ExtractPendingRequestInfo(input []PendingRequest) []RequestInfo {
-	return utils.MapSlice(
-		input,
-		func(req PendingRequest) RequestInfo { return req.RequestInfo },
-	)
-}
+// func ExtractPendingRequestInfo(input []PendingRequest) []RequestInfo {
+// 	return utils.MapSlice(
+// 		input,
+// 		func(req PendingRequest) RequestInfo { return req.RequestInfo },
+// 	)
+// }
 
-func RequestAlreadyExists(requestList []RequestInfo, request RequestInfo) bool {
-	return slices.Contains(requestList, request)
-}
+// func RequestAlreadyExists(requestList []RequestInfo, request RequestInfo) bool {
+// 	return slices.Contains(requestList, request)
+// }

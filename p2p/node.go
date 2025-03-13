@@ -4,6 +4,7 @@ import (
 	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
 	"sanntidslab/p2p/requests"
+	"sanntidslab/utils"
 	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
@@ -68,18 +69,18 @@ var (
 // - Else, redistribute the hall calls that have been backed up
 
 type Heartbeat struct {
-	SenderId        int
+	SenderId        string
 	State           elevalgo.Elevator
-	pendingRequests []requests.PendingRequest
-	WorldView       map[int]peer // Our worldview
+	pendingRequests [elevalgo.NumFloors][elevalgo.NumButtons]requests.PendingRequest // Ack list
+	WorldView       map[string]peer                                                  // Our worldview
 }
 
 type node struct {
-	id              int
+	id              string
 	state           elevalgo.Elevator
-	pendingRequests []requests.PendingRequest
-	peerRequests    []requests.PeerRequest // Requests to ID with floor/button
-	peers           map[int]peer
+	pendingRequests [elevalgo.NumFloors][elevalgo.NumButtons]requests.PendingRequest // Ack list
+	peerRequests    [elevalgo.NumFloors][elevalgo.NumButtons]int                     // Assignee ID
+	peers           map[string]peer
 }
 
 // TODO: Probably split
@@ -93,7 +94,7 @@ func NodeProcess(
 	/* output only channels */
 	orderChan chan<- requests.RequestInfo,
 
-	id int,
+	id string,
 ) {
 	// Cases
 	// 1. React to life signal
@@ -104,6 +105,8 @@ func NodeProcess(
 	// Q: How do we ensure that the node has the right elevator state?
 	// A: Iguess... just have it as an input channel?
 
+	// Let's get rid of the request slices
+
 	nodeInstance := InitNode(elevalgo.GetState(), id)
 
 	for {
@@ -113,26 +116,27 @@ func NodeProcess(
 			peers := UpdatePeerList(heartbeat, nodeInstance.peers, id)
 			nodeInstance.peers = peers
 
-			UpdatePendingRequests(heartbeat)
+			// UpdatePendingRequests(heartbeat)
 			// nodeInstance.CheckRequests(executeRequestChan)
 			// orderChan<-something
 		case peerRequest := <-peerRequestChan:
+			utils.UNUSED(peerRequest)
 			// TODO
 			// nodeInstance.TryReceiveRequest(peerRequest)
 		case buttonEvent := <-buttonEventChan:
 			// TODO: Implement
 			// requestInfo := requests.NewRequestInfo(buttonEvent)
-			// assigneeID := nodeInstance.Assign(requestInfo)
-			// nodeInstance.SendRequest(requestInfo, assigneeID)
+			assigneeID := Assign(buttonEvent, nodeInstance)
+			nodeInstance.SendRequest(requestInfo, assigneeID)
 		case elevatorState := <-elevatorStateChan:
-
+			utils.UNUSED(elevatorState)
 		default:
 			heartbeat := NewHeartbeat(nodeInstance)
 			heartbeatChan <- heartbeat
+			peers := CheckLostPeers(nodeInstance.peers)
+			nodeInstance.peers = peers
 
-			// nodeInstance.CheckLostPeers()
 			// p2p.BroadcastPeerRequests(peerRequestChan, nodeInstance.GetPeerRequests(), nodeInstance.GetPeers())
-			// timer.CheckTimeout()
 		}
 	}
 }
@@ -146,39 +150,64 @@ func NewHeartbeat(node node) Heartbeat {
 	}
 }
 
-func UpdatePeerList(heartbeat Heartbeat, peers map[int]peer, id int) map[int]peer {
-	// If me, do nothing
+func UpdatePeerList(heartbeat Heartbeat, peers map[string]peer, id string) map[string]peer {
+	newPeerList := utils.DuplicateMap(peers)
+
 	if id == heartbeat.SenderId {
-		return peers
+		return newPeerList
 	}
 
-	_peer, ok := peers[heartbeat.SenderId]
+	_peer, ok := newPeerList[heartbeat.SenderId]
 	if ok {
+		if !_peer.Connected {
+			fmt.Println("Reconnecting peer", id)
+		}
+
 		_peer.LastSeen = time.Now()
 		_peer.State = heartbeat.State
 
-		// Loop through requests
-		for _, req := range heartbeat.pendingRequests {
-			_peer.State.Requests[req.RequestInfo.Floor][req.RequestInfo.ButtonType] = true
+		for i := range elevalgo.NumFloors {
+			for j := range elevalgo.NumButtons {
+				if !heartbeat.pendingRequests[i][j].Active {
+					continue
+				}
+
+				if !_peer.State.Requests[i][j] {
+					fmt.Println("IT seems someone is having a pending request")
+				}
+				_peer.State.Requests[i][j] = true
+			}
 		}
 
-		return peers
+		_peer.Connected = true
+
+		newPeerList[heartbeat.SenderId] = _peer
+		return newPeerList
 	}
 
+	fmt.Println(heartbeat.SenderId)
 	newPeer := newPeer(heartbeat.State, heartbeat.SenderId)
 	fmt.Println("New peer created: ")
 	fmt.Println(newPeer)
-	peers[heartbeat.SenderId] = newPeer
-	return peers
+
+	newPeerList[heartbeat.SenderId] = newPeer
+
+	return newPeerList
 }
 
-func CheckLostPeers(peers map[int]peer) map[int]peer {
-	for _, peer := range peers {
+func CheckLostPeers(peers map[string]peer) map[string]peer {
+	newPeerList := utils.DuplicateMap(peers)
+	var lostPeer peer
+	for _, peer := range newPeerList {
 		if peer.LastSeen.Add(timeout).Before(time.Now()) && peer.Connected {
+			lostPeer = peer
+			lostPeer.Connected = false
 			fmt.Println("Lost peer:", peer)
-			peer.Connected = false
 		}
 	}
+
+	newPeerList[lostPeer.Id] = lostPeer
+	return newPeerList
 }
 
 func (n *node) CheckRequests(executeRequestChan chan requests.RequestInfo) {
@@ -203,41 +232,40 @@ func (n *node) CheckRequests(executeRequestChan chan requests.RequestInfo) {
 
 // Checks whether the request has been acked - Note that we wait for all peers to
 // ack before we take the request
-func UpdatePendingRequests(heartbeat Heartbeat) []requests.PendingRequest {
-	for _, req := range n.pendingRequests {
-		if heartbeat.WorldView[n.id].State.Requests[req.RequestInfo.Floor][req.RequestInfo.ButtonType] {
-			fmt.Println("Updating pending request")
-			req.Acks[heartbeat.SenderId] = true
+// func UpdatePendingRequests(heartbeat Heartbeat) []requests.PendingRequest {
+// 	for _, req := range n.pendingRequests {
+// 		if heartbeat.WorldView[n.id].State.Requests[req.RequestInfo.Floor][req.RequestInfo.ButtonType] {
+// 			fmt.Println("Updating pending request")
+// 			req.Acks[heartbeat.SenderId] = true
+// 		}
+// 	}
+// }
+
+func Assign(buttonEvent elevio.ButtonEvent, self node) string {
+	if buttonEvent.Button == elevio.BT_Cab {
+		return self.id
+	}
+
+	for _, _peer := range self.peers {
+		return _peer.Id
+	}
+	return self.id
+}
+
+func (n *node) DistributeRequest(req requests.RequestInfo, assigneeID int) {
+	if assigneeID == n.id {
+		fmt.Println("Taking the request myself")
+		if requests.RequestAlreadyExists(requests.ExtractPendingRequestInfo(n.pendingRequests), req) {
+			return
 		}
+		n.pendingRequests = append(n.pendingRequests, requests.NewPendingRequest(req))
+	} else {
+		if requests.RequestAlreadyExists(requests.ExtractPeerRequestInfo(n.peerRequests), req) {
+			return
+		}
+		fmt.Println("Appending a request for peer", req)
+		n.peerRequests = append(n.peerRequests, requests.NewPeerRequest(req, assigneeID))
 	}
-}
-
-func (n *node) Assign(req requests.RequestInfo) int {
-	if req.ButtonType == elevio.BT_Cab {
-		return n.id
-	}
-
-	for _, _peer := range n.peers {
-		return _peer.info.Id
-	}
-	return n.id
-}
-
-// TODO: Learn more about go's concurrency patterns and reconsider the peersLock idea
-func (n *node) SendRequest(req requests.RequestInfo, assigneeID int) {
-	// if assigneeID == n.id {
-	// 	fmt.Println("Taking the request myself")
-	// 	if requests.RequestAlreadyExists(requests.ExtractPendingRequestInfo(n.pendingRequests), req) {
-	// 		return
-	// 	}
-	// 	n.pendingRequests = append(n.pendingRequests, requests.NewPendingRequest(req))
-	// } else {
-	// 	if requests.RequestAlreadyExists(requests.ExtractPeerRequestInfo(n.peerRequests), req) {
-	// 		return
-	// 	}
-	// 	fmt.Println("Appending a request for peer", req)
-	// 	n.peerRequests = append(n.peerRequests, requests.NewPeerRequest(req, assigneeID))
-	// }
 }
 
 // TODO: Shorten the names a bit maybe...
@@ -252,37 +280,37 @@ func BroadcastPeerRequests(peerRequestChan chan requests.PeerRequest, peerReques
 	}
 }
 
-func (n *node) TryReceiveRequest(peerRequest requests.PeerRequest) {
-	if peerRequest.AssigneeID != n.id {
-		return
-	}
-	n.SelfAssignRequest(peerRequest.RequestInfo)
-}
+// func (n *node) TryReceiveRequest(peerRequest requests.PeerRequest) {
+// 	if peerRequest.AssigneeID != n.id {
+// 		return
+// 	}
+// 	n.SelfAssignRequest(peerRequest.RequestInfo)
+// }
 
 // TODO: Rewrite with map so that duplicate requests are impossible
-func (n *node) SelfAssignRequest(request requests.RequestInfo) {
-	if requests.RequestAlreadyExists(requests.ExtractPendingRequestInfo(n.pendingRequests), request) {
-		return
-	}
+// func (n *node) SelfAssignRequest(request requests.RequestInfo) {
+// 	if requests.RequestAlreadyExists(requests.ExtractPendingRequestInfo(n.pendingRequests), request) {
+// 		return
+// 	}
 
-	n.pendingRequests = append(n.pendingRequests, requests.NewPendingRequest(request))
-}
+// 	n.pendingRequests = append(n.pendingRequests, requests.NewPendingRequest(request))
+// }
 
 // TODO: Request assigner algorithm is acting kinda sus
 
-func (n *node) GetPeerRequests() []requests.PeerRequest {
-	return n.peerRequests
-}
+// func (n *node) GetPeerRequests() []requests.PeerRequest {
+// 	return n.peerRequests
+// }
 
-func (n *node) GetPeers() map[int]peer {
+func (n *node) GetPeers() map[string]peer {
 	return n.peers
 }
 
-func InitNode(state elevalgo.Elevator, id int) node {
+func InitNode(state elevalgo.Elevator, id string) node {
 	nodeInstance := node{
 		id:    id,
 		state: state,
-		peers: make(map[int]peer, 0),
+		peers: make(map[string]peer, 0),
 	}
 
 	fmt.Println("Successfully created node ", id)

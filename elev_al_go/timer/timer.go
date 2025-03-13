@@ -23,6 +23,7 @@ func StopTimer() {
 	active = false
 }
 
+// TODO: Turn this into a (small) process
 func CheckTimeout() {
 	timedOut := active && time.Since(startTime) > timeout
 	if timedOut && timedOut != timedOutCache {
