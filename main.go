@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	backup "sanntidslab/backup"
 	elevalgo "sanntidslab/elev_al_go"
 	timer "sanntidslab/elev_al_go/timer"
@@ -10,12 +11,20 @@ import (
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
+const (
+	processPairFlag = "processPairFlag"
+)
+
 func main() {
+
+	var pFlag string
+	flag.StringVar(&pFlag, "processPairFlag", "", "Flag to be able to revive locally")
+
 	elevio.Init("localhost:15657", elevalgo.NumFloors)
 	elevalgo.InitFsm()
 	backup.InitElevator(&elevalgo.ThisElevator)
-	
-	go backup.BackupFSM()
+
+	//go backup.BackupFSM()
 
 	drv_buttons := make(chan elevio.ButtonEvent)
 	drv_floors := make(chan int)
