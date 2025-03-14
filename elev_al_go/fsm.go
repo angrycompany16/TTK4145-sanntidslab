@@ -40,7 +40,7 @@ func initBetweenFloors() {
 // TODO: Now we have no struct in this, but we still have a singleton (even worse, it's
 // public...), and sure, defining these functions as methods on the struct means that
 // they can modify any value in the struct, but they can do that now as well???
-func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
+func requestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -83,7 +83,7 @@ func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
 	}
 }
 
-func OnFloorArrival(newFloor int) {
+func onFloorArrival(newFloor int) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -115,7 +115,7 @@ func OnFloorArrival(newFloor int) {
 	}
 }
 
-func OnDoorTimeout() {
+func onDoorTimeout() {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -149,7 +149,7 @@ func OnDoorTimeout() {
 	}
 }
 
-func DoorObstructed(isObstructed bool) {
+func doorObstructed(isObstructed bool) {
 	if !isObstructed {
 		return
 	}

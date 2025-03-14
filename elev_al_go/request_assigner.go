@@ -4,7 +4,7 @@ import (
 	"sort"
 )
 
-const TRAVEL_TIME = 2.0
+const TRAVEL_TIME = 1.0
 
 // TODO: it may be possible to do this better. One could compute how far each elevator is
 // from being able to reach the request, and order based on that

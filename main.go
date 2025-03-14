@@ -52,13 +52,14 @@ func main() {
 	elevio.Init("localhost:"+itoa.Itoa(port), elevalgo.NumFloors)
 	elevalgo.InitFsm()
 
-	drv_buttons := make(chan elevio.ButtonEvent)
-	drv_floors := make(chan int)
-	drv_obstr := make(chan bool)
+	buttonEventChan := make(chan elevio.ButtonEvent)
+	floorChan := make(chan int)
+	obstructionChan := make(chan bool)
 
-	go elevio.PollButtons(drv_buttons)
-	go elevio.PollFloorSensor(drv_floors)
-	go elevio.PollObstructionSwitch(drv_obstr)
+	go elevio.PollButtons(buttonEventChan) // "Sent" to node for further action
+
+	go elevio.PollFloorSensor(floorChan) // "Sent" to elevalgo for declaring new state
+	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
 
 	// ---- Initialize timer
 	timer.SetTimeout(elevalgo.GetTimeout())
@@ -76,88 +77,9 @@ func main() {
 	go broadcast.BroadcastSender(p2p.RequestBroadCastPort, peerRequestChan)
 	go broadcast.BroadcastReceiver(p2p.RequestBroadCastPort, peerRequestChan)
 
-	go p2p.NodeProcess(heartbeatChan, peerRequestChan, drv_buttons, elevatorStateChan, orderChan, id)
+	go p2p.NodeProcess(heartbeatChan, peerRequestChan, buttonEventChan, elevatorStateChan, orderChan, id)
 
-	for {
-		select {
-		case requestInfo := <-orderChan:
-			elevalgo.RequestButtonPressed(requestInfo.Floor, requestInfo.ButtonType)
-		case floor := <-drv_floors:
-			elevalgo.OnFloorArrival(floor)
-		case obstructionEvent := <-drv_obstr:
-			elevalgo.DoorObstructed(obstructionEvent)
-		case <-timer.TimeoutChan:
-			timer.StopTimer()
-			elevalgo.OnDoorTimeout()
-
-		default:
-			elevatorStateChan <- elevalgo.GetState()
-		}
-	}
+	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
 }
 
-// func main() {
 
-// 	drv_buttons := make(chan elevio.ButtonEvent)
-// 	drv_floors := make(chan int)
-// 	drv_obstr := make(chan bool)
-// 	poll_timer := make(chan bool, 1)
-// 	requests := make(chan p2p.RequestInfo, RequestBufferSize)
-
-// 	go elevio.PollButtons(drv_buttons)
-// 	go elevio.PollFloorSensor(drv_floors)
-// 	go elevio.PollObstructionSwitch(drv_obstr)
-
-// 		case request := <-requests: // WARNING: sending things into this channel *will*
-// 			// make the elevator service the request!
-// 			fmt.Println("Received request")
-// 			elevalgo.RequestButtonPressed(request.Floor, request.ButtonType)
-// 		case button := <-drv_buttons:
-// 			fmt.Println("Button press incoming!")
-// 			request := p2p.RequestInfo{
-// 				SenderId:   nodeInstance.GetId(),
-// 				ButtonType: button.Button,
-// 				Floor:      button.Floor,
-// 			}
-
-// 			if button.Button == elevio.BT_Cab {
-// 				fmt.Println("Assigning to self")
-// 				nodeInstance.AssignRequestSelf(request)
-// 			} else {
-// 				fmt.Println("Assigning to other")
-// 				// nodeInstance.AssignRequest(request)
-// 			}
-// 		case floor := <-drv_floors:
-// 			fmt.Println("Arrived on floor")
-// 			elevalgo.OnFloorArrival(floor)
-// 		case obstructed := <-drv_obstr:
-// 			if obstructed {
-// 				elevalgo.DoorObstructed()
-// 			}
-// 		case <-poll_timer:
-// 			fmt.Println("Timer")
-// 			timer.StopTimer()
-// 			elevalgo.OnDoorTimeout()
-// 		case request := <-nodeInstance.RequestChan:
-// 			fmt.Println("Request arrived")
-// 			if request.AssigneeID == nodeInstance.GetId() {
-// 				nodeInstance.AssignRequestSelf(request.Request)
-// 			}
-// 			// default:
-// 			// fmt.Println("Update started")
-
-// 			// lightsState := elevalgo.MergeHallLights(
-// 			// 	elevalgo.ThisElevator,
-// 			// 	append(utils.MapToArray((nodeInstance.ExtractPeerState())), elevalgo.ThisElevator),
-// 			// )
-// 			// elevalgo.ThisElevator.SetLights(lightsState)
-
-// 			// for _, outRequest := range nodeInstance.RequestsForPeers {
-// 			// 	fmt.Println("Request for someone else:", outRequest)
-// 			// 	nodeInstance.RequestChan <- outRequest
-// 			// 	fmt.Println("Request sent")
-// 			// }
-// 			// time.Sleep(time.Millisecond * 10)
-// 		}
-// 	}
-// }
