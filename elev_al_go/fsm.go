@@ -31,7 +31,7 @@ func SetAllLights(elevator Elevator) {
 	}
 }
 
-func initBetweenFloors() {
+func InitBetweenFloors() {
 	elevio.SetMotorDirection(elevio.MD_Down)
 	elevator.direction = down
 	elevator.behaviour = moving

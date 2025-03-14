@@ -4,19 +4,11 @@ import (
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
-// type Request interface {
-// 	getRequestInfo() RequestInfo
-// }
-
 // A type of request that is waiting to be received by some peer
 type PeerRequest struct {
 	// RequestInfo RequestInfo
 	AssigneeID string
 }
-
-// func (p *PeerRequest) getRequestInfo() RequestInfo {
-// 	return p.RequestInfo
-// }
 
 func NewPeerRequest(assigneeID string) PeerRequest {
 	return PeerRequest{
@@ -32,17 +24,6 @@ type PendingRequest struct {
 	Acks   map[string]bool // Array of booleans indicating whether the peers have accepted this request (i.e. whether they have backed it up or not)
 }
 
-// func (p *PendingRequest) getRequestInfo() RequestInfo {
-// 	return p.RequestInfo
-// }
-
-func NewPendingRequest() PendingRequest {
-	return PendingRequest{
-		// RequestInfo: req,
-		Acks: make(map[string]bool),
-	}
-}
-
 type RequestInfo struct {
 	ButtonType elevio.ButtonType
 	Floor      int
@@ -54,21 +35,3 @@ func NewRequestInfo(buttonEvent elevio.ButtonEvent) RequestInfo {
 		Floor:      buttonEvent.Floor,
 	}
 }
-
-// func ExtractPeerRequestInfo(input []PeerRequest) []RequestInfo {
-// 	return utils.MapSlice(
-// 		input,
-// 		func(req PeerRequest) RequestInfo { return req.RequestInfo },
-// 	)
-// }
-
-// func ExtractPendingRequestInfo(input []PendingRequest) []RequestInfo {
-// 	return utils.MapSlice(
-// 		input,
-// 		func(req PendingRequest) RequestInfo { return req.RequestInfo },
-// 	)
-// }
-
-// func RequestAlreadyExists(requestList []RequestInfo, request RequestInfo) bool {
-// 	return slices.Contains(requestList, request)
-// }
