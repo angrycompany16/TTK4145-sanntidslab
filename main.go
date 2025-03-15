@@ -1,51 +1,86 @@
 package main
 
 import (
-	backup "sanntidslab/backup"
+	"flag"
+	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
-	timer "sanntidslab/elev_al_go/timer"
+	"sanntidslab/elev_al_go/timer"
+	"sanntidslab/peer"
+	"strconv"
+	"time"
 
-	// networking "sanntidslab/network"
-
+	"github.com/angrycompany16/Network-go/network/transfer"
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
+const (
+	requestBufferSize    = 1
+	defaultElevatorPort  = 15657 /* I think? */
+	stateBroadcastPort   = 36251 // Akkordrekke
+	requestBroadCastPort = 12345
+)
+
+// TODO: *Read* code complete checklist properly and at least try to make the code
+// quality good
+
+// TODO: Implement the backup actually taking lost requests itself
+// TODO: In case of disconnect, all requests should also be taken
+// TODO: Arbitration/priority system to find out who should take
+// This can be done with one behaviour mode
+
+// A note on convention before i forget:
+// - Orders: Will be executed by elevator, will cause lights to activate
+// - Requests: Abstract orders that haven't yet been confirmed/acknowledged
+
+// TODO: Consider: Should obstruction be its own process?
+
+// TODO: Door not working
+
 func main() {
-	elevio.Init("localhost:15657", elevalgo.NumFloors)
+	// ---- Flags
+	var port int
+	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
+	flag.StringVar(&peer.GlobalID, "id", "", "Network node id")
+	fmt.Println("Started!")
+
+	flag.Parse()
+
+	// ---- Initialize elevator
+	elevio.Init("localhost:"+strconv.Itoa(port), elevalgo.NumFloors)
 	elevalgo.InitFsm()
-	backup.InitElevator(&elevalgo.ThisElevator)
-	
-	go backup.BackupFSM()
+	elevalgo.InitBetweenFloors()
 
-	drv_buttons := make(chan elevio.ButtonEvent)
-	drv_floors := make(chan int)
-	drv_obstr := make(chan bool)
-	poll_timer := make(chan bool)
-	incoming_requests := make(chan backup.ElevatorRequest)
+	buttonEventChan := make(chan elevio.ButtonEvent)
+	floorChan := make(chan int)
+	obstructionChan := make(chan bool)
 
-	go elevio.PollButtons(drv_buttons)
-	go elevio.PollFloorSensor(drv_floors)
-	go elevio.PollObstructionSwitch(drv_obstr)
-	go timer.PollTimer(poll_timer, elevalgo.GetTimeout())
-	go backup.ThisNode.PipeListener(incoming_requests)
+	go elevio.PollButtons(buttonEventChan) // "Sent" to node for further action
 
+	go elevio.PollFloorSensor(floorChan)             // "Sent" to elevalgo for declaring new state
+	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
+
+	// ---- Initialize timer
+	fmt.Println(elevalgo.GetTimeout())
+	timer.SetTimeout(elevalgo.GetTimeout())
+	timer.StartTimer()
+
+	// ---- Initialize networking
+	orderChan := make(chan elevio.ButtonEvent, 1)
+	peerRequestChan := make(chan peer.Advertiser) // Node <- Network
+	heartbeatChan := make(chan peer.Heartbeat)
+	elevatorStateChan := make(chan elevalgo.Elevator)
+
+	go transfer.BroadcastSender(stateBroadcastPort, heartbeatChan)
+	go transfer.BroadcastReceiver(stateBroadcastPort, heartbeatChan)
+
+	go transfer.BroadcastSender(requestBroadCastPort, peerRequestChan)
+	go transfer.BroadcastReceiver(requestBroadCastPort, peerRequestChan)
+
+	go peer.NodeProcess(peerRequestChan, heartbeatChan, buttonEventChan, elevatorStateChan, orderChan, elevalgo.GetState())
+
+	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
 	for {
-		select {
-		case request := <-incoming_requests:
-			elevalgo.RequestButtonPressed(request.Floor, request.ButtonType)
-		case button := <-drv_buttons:
-			// Find peer which should take the request
-			// Send the request
-			backup.ThisNode.SendMsg(button.Button, button.Floor)
-		case floor := <-drv_floors:
-			elevalgo.OnFloorArrival(floor)
-		case obstructed := <-drv_obstr:
-			if obstructed {
-				elevalgo.DoorObstructed()
-			}
-		case <-poll_timer:
-			timer.StopTimer()
-			elevalgo.OnDoorTimeout()
-		}
+		time.Sleep(1 * time.Second)
 	}
+
 }

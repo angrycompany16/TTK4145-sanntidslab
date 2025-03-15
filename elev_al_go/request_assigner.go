@@ -4,12 +4,15 @@ import (
 	"sort"
 )
 
-const TRAVEL_TIME = 2
+const TRAVEL_TIME = 1.0
+
+// TODO: it may be possible to do this better. One could compute how far each elevator is
+// from being able to reach the request, and order based on that
 
 // Make a copy of each elevator and use as input, add the new order to each elevator or pass it as a parameter in following func.
-func timeToIdle(e Elevator) int {
-	duration := 0
-	doorOpenTime := 3 //int(e.config.DoorOpenDuration)
+func timeToIdle(e Elevator) float64 {
+	duration := 0.0
+	// doorOpenTime := 3 //int(e.config.DoorOpenDuration)
 
 	switch e.behaviour {
 	case idle:
@@ -22,13 +25,13 @@ func timeToIdle(e Elevator) int {
 		e.floor += int(e.direction)
 
 	case doorOpen:
-		duration -= doorOpenTime / 2
+		duration -= e.config.DoorOpenDuration.Seconds() / 2
 	}
 
 	for {
 		if e.shouldStop() {
 			e = clearAtCurrentFloor(e)
-			duration += doorOpenTime
+			duration += e.config.DoorOpenDuration.Seconds()
 
 			pair := e.chooseDirection()
 			e.direction = pair.dir
@@ -42,9 +45,9 @@ func timeToIdle(e Elevator) int {
 	}
 }
 
-func preferredOrder(activeElevators []Elevator) []int { //List of functioning elevators. Null aktive heiser exception?
+func GetBestOrder(activeElevators []Elevator) []int { //List of functioning elevators. Null aktive heiser exception?
 	preferredOrderIndices := make([]int, 0, len(activeElevators))
-	idleTimes := make([]int, 0, len(activeElevators))
+	idleTimes := make([]float64, 0, len(activeElevators))
 
 	for i, e := range activeElevators {
 		idleTimes = append(idleTimes, timeToIdle(e))
