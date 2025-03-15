@@ -1,0 +1,78 @@
+Date : 2025-03-11 13:10:54
+Directory : /home/angrycompany16/ntnu/TTK4145-sanntidslab
+Total : 34 files,  1582 codes, 63 comments, 211 blanks, all 1856 lines
+
+Languages
++------------------+------------+------------+------------+------------+------------+
+| language         | files      | code       | comment    | blank      | total      |
++------------------+------------+------------+------------+------------+------------+
+| Go               |         12 |        914 |         63 |        186 |      1,163 |
+| JSON             |         10 |        488 |          0 |          0 |        488 |
+| Markdown         |          9 |         95 |          0 |         19 |        114 |
+| Go Checksum File |          1 |         58 |          0 |          1 |         59 |
+| Go Module File   |          1 |         25 |          0 |          5 |         30 |
+| YAML             |          1 |          2 |          0 |          0 |          2 |
++------------------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                    | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                       |         34 |      1,582 |         63 |        211 |      1,856 |
+| . (Files)                                                                                               |          4 |        154 |          3 |         22 |        179 |
+| PDD                                                                                                     |          7 |        256 |          0 |          2 |        258 |
+| PDD (Files)                                                                                             |          2 |          3 |          0 |          2 |          5 |
+| PDD/.obsidian                                                                                           |          5 |        253 |          0 |          0 |        253 |
+| elev_al_go                                                                                              |          7 |        484 |         21 |         89 |        594 |
+| elev_al_go (Files)                                                                                      |          6 |        459 |         20 |         83 |        562 |
+| elev_al_go/timer                                                                                        |          1 |         25 |          1 |          6 |         32 |
+| notes_and_design                                                                                        |         11 |        325 |          0 |         16 |        341 |
+| notes_and_design/.obsidian                                                                              |          5 |        235 |          0 |          0 |        235 |
+| notes_and_design/Naming conventions                                                                     |          1 |          5 |          0 |          0 |          5 |
+| notes_and_design/Networking                                                                             |          5 |         85 |          0 |         16 |        101 |
+| notes_and_design/Networking (Files)                                                                     |          1 |          6 |          0 |          1 |          7 |
+| notes_and_design/Networking/Submodules                                                                  |          4 |         79 |          0 |         15 |         94 |
+| p2p                                                                                                     |          4 |        335 |         38 |         77 |        450 |
+| utils                                                                                                   |          1 |         28 |          1 |          5 |         34 |
++---------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| filename                                                                                                | language         | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/.obsidian/app.json                                    | JSON             |          1 |          0 |          0 |          1 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/.obsidian/appearance.json                             | JSON             |          3 |          0 |          0 |          3 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/.obsidian/core-plugins.json                           | JSON             |         31 |          0 |          0 |         31 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/.obsidian/graph.json                                  | JSON             |         22 |          0 |          0 |         22 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/.obsidian/workspace.json                              | JSON             |        196 |          0 |          0 |        196 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/SAnntid heis distributed.md                           | Markdown         |          2 |          0 |          1 |          3 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/PDD/test.md                                               | Markdown         |          1 |          0 |          1 |          2 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/README.md                                                 | Markdown         |          2 |          0 |          1 |          3 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/elevator.go                                    | Go               |        134 |          7 |         24 |        165 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/elevator_config.yaml                           | YAML             |          2 |          0 |          0 |          2 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/fsm.go                                         | Go               |        132 |          7 |         28 |        167 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/lights.go                                      | Go               |         31 |          2 |          7 |         40 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/request_assigner.go                            | Go               |         45 |          4 |         13 |         62 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/requests.go                                    | Go               |        115 |          0 |         11 |        126 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/elev_al_go/timer/timer.go                                 | Go               |         25 |          1 |          6 |         32 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/go.mod                                                    | Go Module File   |         25 |          0 |          5 |         30 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/go.sum                                                    | Go Checksum File |         58 |          0 |          1 |         59 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/main.go                                                   | Go               |         69 |          3 |         15 |         87 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/.obsidian/app.json                       | JSON             |          3 |          0 |          0 |          3 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/.obsidian/appearance.json                | JSON             |          1 |          0 |          0 |          1 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/.obsidian/core-plugins.json              | JSON             |         31 |          0 |          0 |         31 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/.obsidian/graph.json                     | JSON             |         22 |          0 |          0 |         22 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/.obsidian/workspace.json                 | JSON             |        178 |          0 |          0 |        178 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/Naming conventions/Naming conventions.md | Markdown         |          5 |          0 |          0 |          5 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/Networking/Networking-module.md          | Markdown         |          6 |          0 |          1 |          7 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/Networking/Submodules/bcast.go.md        | Markdown         |         34 |          0 |          7 |         41 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/Networking/Submodules/conn.go.md         | Markdown         |          1 |          0 |          0 |          1 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/Networking/Submodules/localip.go.md      | Markdown         |          8 |          0 |          0 |          8 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/notes_and_design/Networking/Submodules/peers.go.md        | Markdown         |         36 |          0 |          8 |         44 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/p2p/heartbeats.go                                         | Go               |         65 |          2 |         21 |         88 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/p2p/node.go                                               | Go               |        189 |         36 |         37 |        262 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/p2p/peer.go                                               | Go               |         55 |          0 |         12 |         67 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/p2p/requests.go                                           | Go               |         26 |          0 |          7 |         33 |
+| /home/angrycompany16/ntnu/TTK4145-sanntidslab/utils/utils.go                                            | Go               |         28 |          1 |          5 |         34 |
+| Total                                                                                                   |                  |      1,582 |         63 |        211 |      1,856 |
++---------------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+

@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	NumFloors  = 4
-	NumButtons = 3
+	NumFloors      = 4
+	numCabButtons  = 1
+	numHallButtons = 2
+	NumButtons     = numCabButtons + numHallButtons
 )
 
 var ConfigPath = path.Join("elev_al_go", "elevator_config.yaml")
@@ -151,6 +153,8 @@ func MakeUninitializedelevator() Elevator {
 	if err != nil {
 		log.Fatal("Failed to initialize elevator from .yaml file")
 	}
+
+	fmt.Println(config.DoorOpenDuration)
 
 	return Elevator{
 		floor:     -1,

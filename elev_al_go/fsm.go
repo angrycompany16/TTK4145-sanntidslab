@@ -3,143 +3,281 @@ package elevalgo
 import (
 	"fmt"
 	"runtime"
-	timer "sanntidslab/elev_al_go/timer"
 	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
-var (
-	ThisElevator Elevator
+const (
+	DisablePrinting = true
 )
 
+var (
+	elevator Elevator
+)
+
+// TODO: Rewrite to functional
+
 func InitFsm() {
-	ThisElevator = MakeUninitializedelevator()
-	initBetweenFloors()
+	elevator = MakeUninitializedelevator()
 }
 
-func setAllLights(elevator Elevator) {
+func SetAllLights(elevator Elevator) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			if floor == 4 {
-				fmt.Println("floor ", floor)
-				fmt.Println("button ", btn)
-			}
 			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.Requests[floor][btn])
 		}
 	}
 }
 
-func initBetweenFloors() {
+func InitBetweenFloors() {
 	elevio.SetMotorDirection(elevio.MD_Down)
-	ThisElevator.direction = down
-	ThisElevator.behaviour = moving
+	elevator.direction = down
+	elevator.behaviour = moving
 }
 
-func RequestButtonPressed(buttonFloor int, buttonType elevio.ButtonType) {
+// TODO: Now we have no struct in this, but we still have a singleton (even worse, it's
+// public...), and sure, defining these functions as methods on the struct means that
+// they can modify any value in the struct, but they can do that now as well???
+func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonType) (newElevator Elevator, commands []hardwareEffect) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
+		elevator.print()
+	}
 
-	switch ThisElevator.behaviour {
+	newElevator = e
+	switch newElevator.behaviour {
 	case doorOpen:
-		if ThisElevator.shouldClearImmediately(buttonFloor, buttonType) {
-			timer.StartTimer()
+		if newElevator.shouldClearImmediately(buttonFloor, buttonType) {
+			commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
 		} else {
-			ThisElevator.Requests[buttonFloor][buttonType] = true
+			newElevator.Requests[buttonFloor][buttonType] = true
 		}
 	case moving:
-		ThisElevator.Requests[buttonFloor][buttonType] = true
+		newElevator.Requests[buttonFloor][buttonType] = true
 	case idle:
-		ThisElevator.Requests[buttonFloor][buttonType] = true
-		pair := ThisElevator.chooseDirection()
-		ThisElevator.direction = pair.dir
-		ThisElevator.behaviour = pair.behaviour
+		newElevator.Requests[buttonFloor][buttonType] = true
+		pair := newElevator.chooseDirection()
+		newElevator.direction = pair.dir
+		newElevator.behaviour = pair.behaviour
+		fmt.Println(pair.behaviour)
 		switch pair.behaviour {
 		case doorOpen:
-			elevio.SetDoorOpenLamp(true)
-			timer.StartTimer()
-			ThisElevator = clearAtCurrentFloor(ThisElevator)
+			fmt.Println("door opem")
+			commands = append(commands, hardwareEffect{effect: setDoorOpenLamp, value: true})
+			commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
+			newElevator = clearAtCurrentFloor(newElevator)
 		case moving:
-			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
+			fmt.Println("moving")
+			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
 		}
 	}
-
-	setAllLights(ThisElevator)
-
-	fmt.Printf("\nNew state:\n")
-	ThisElevator.print()
+	return newElevator, commands
 }
 
-func OnFloorArrival(newFloor int) {
+// 	pc := make([]uintptr, 15)
+// 	n := runtime.Callers(2, pc)
+// 	frames := runtime.CallersFrames(pc[:n])
+// 	frame, _ := frames.Next()
+
+// 	if !DisablePrinting {
+// 		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
+// 		elevator.print()
+// 	}
+
+// 	switch elevator.behaviour {
+// 	case doorOpen:
+// 		if elevator.shouldClearImmediately(buttonFloor, buttonType) {
+// 			timer.StartTimer()
+// 		} else {
+// 			elevator.Requests[buttonFloor][buttonType] = true
+// 		}
+// 	case moving:
+// 		elevator.Requests[buttonFloor][buttonType] = true
+// 	case idle:
+// 		elevator.Requests[buttonFloor][buttonType] = true
+// 		pair := elevator.chooseDirection()
+// 		elevator.direction = pair.dir
+// 		elevator.behaviour = pair.behaviour
+// 		switch pair.behaviour {
+// 		case doorOpen:
+// 			elevio.SetDoorOpenLamp(true)
+// 			timer.StartTimer()
+// 			elevator = clearAtCurrentFloor(elevator)
+// 		case moving:
+// 			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
+// 		}
+// 	}
+
+// 	// setAllLights(e)
+
+// 	if !DisablePrinting {
+// 		fmt.Printf("\nNew state:\n")
+// 		elevator.print()
+// 	}
+// }
+
+func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []hardwareEffect) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
+		elevator.print()
+	}
 
-	ThisElevator.floor = newFloor
+	newElevator = e
+	newElevator.floor = newFloor
 
-	elevio.SetFloorIndicator(ThisElevator.floor)
+	commands = append(commands, hardwareEffect{effect: setFloorIndicator, value: newFloor})
 
-	switch ThisElevator.behaviour {
+	switch newElevator.behaviour {
 	case moving:
-		if ThisElevator.shouldStop() {
-			elevio.SetMotorDirection(elevio.MD_Stop)
-			elevio.SetDoorOpenLamp(true)
-			ThisElevator = clearAtCurrentFloor(ThisElevator)
-			timer.StartTimer()
-			setAllLights(ThisElevator)
-			ThisElevator.behaviour = doorOpen
+		if newElevator.shouldStop() {
+			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
+			commands = append(commands, hardwareEffect{effect: setDoorOpenLamp, value: true})
+			newElevator = clearAtCurrentFloor(newElevator)
+			commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
+			newElevator.behaviour = doorOpen
 		}
 	}
-
-	fmt.Printf("\nNew state:\n")
-	ThisElevator.print()
+	return newElevator, commands
 }
 
-func OnDoorTimeout() {
+// 	pc := make([]uintptr, 15)
+// 	n := runtime.Callers(2, pc)
+// 	frames := runtime.CallersFrames(pc[:n])
+// 	frame, _ := frames.Next()
+
+// 	if !DisablePrinting {
+// 		fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
+// 		elevator.print()
+// 	}
+// 	elevator.floor = newFloor
+
+// 	elevio.SetFloorIndicator(elevator.floor)
+
+// 	switch elevator.behaviour {
+// 	case moving:
+// 		if elevator.shouldStop() {
+// 			elevio.SetMotorDirection(elevio.MD_Stop)
+// 			elevio.SetDoorOpenLamp(true)
+// 			elevator = clearAtCurrentFloor(elevator)
+// 			timer.StartTimer()
+// 			// setAllLights(e)
+// 			elevator.behaviour = doorOpen
+// 		}
+// 	}
+
+// 	if !DisablePrinting {
+// 		fmt.Printf("\nNew state:\n")
+// 		elevator.print()
+// 	}
+// }
+
+func onDoorTimeout(e Elevator) (newElevator Elevator, commands []hardwareEffect) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	fmt.Printf("\n\n%s()\n", frame.Function)
-	ThisElevator.print()
+	if !DisablePrinting {
+		fmt.Printf("\n\n%s()\n", frame.Function)
+		elevator.print()
+	}
 
-	switch ThisElevator.behaviour {
+	newElevator = e
+
+	switch newElevator.behaviour {
 	case doorOpen:
-		pair := ThisElevator.chooseDirection()
-		ThisElevator.direction = pair.dir
-		ThisElevator.behaviour = pair.behaviour
+		pair := newElevator.chooseDirection()
+		newElevator.direction = pair.dir
+		newElevator.behaviour = pair.behaviour
 
-		switch ThisElevator.behaviour {
+		switch newElevator.behaviour {
 		case doorOpen:
-			timer.StartTimer()
-			ThisElevator = clearAtCurrentFloor(ThisElevator)
-			setAllLights(ThisElevator)
+			commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
+			newElevator = clearAtCurrentFloor(newElevator)
+
 		case moving, idle:
-			elevio.SetDoorOpenLamp(false)
-			elevio.SetMotorDirection(elevio.MotorDirection(ThisElevator.direction))
+			commands = append(commands, hardwareEffect{effect: setDoorOpenLamp, value: false})
+			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
 		}
 	}
-
-	fmt.Printf("\nNew state:\n")
-	ThisElevator.print()
+	return newElevator, commands
 }
 
-func DoorObstructed() {
-	if ThisElevator.behaviour == doorOpen {
-		timer.StartTimer()
+// 	pc := make([]uintptr, 15)
+// 	n := runtime.Callers(2, pc)
+// 	frames := runtime.CallersFrames(pc[:n])
+// 	frame, _ := frames.Next()
+
+// 	if !DisablePrinting {
+// 		fmt.Printf("\n\n%s()\n", frame.Function)
+// 		elevator.print()
+// 	}
+// 	switch elevator.behaviour {
+// 	case doorOpen:
+// 		pair := elevator.chooseDirection()
+// 		elevator.direction = pair.dir
+// 		elevator.behaviour = pair.behaviour
+
+// 		switch elevator.behaviour {
+// 		case doorOpen:
+// 			timer.StartTimer()
+// 			elevator = clearAtCurrentFloor(elevator)
+// 			// setAllLights(e)
+// 		case moving, idle:
+// 			fmt.Println("Closing door")
+// 			elevio.SetDoorOpenLamp(false)
+// 			elevio.SetMotorDirection(elevio.MotorDirection(elevator.direction))
+// 		}
+// 	}
+
+// 	if !DisablePrinting {
+// 		fmt.Printf("\nNew state:\n")
+// 		elevator.print()
+// 	}
+// }
+
+func doorObstructed(e Elevator, isObstructed bool) (commands []hardwareEffect) {
+	if !isObstructed {
+		return commands
 	}
+	fmt.Println("Obstructed")
+
+	if e.behaviour == doorOpen {
+		commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
+	}
+	return commands
 }
+
+// 	if !isObstructed {
+// 		return
+// 	}
+
+// 	fmt.Println("obstr")
+
+// 	if elevator.behaviour == doorOpen {
+// 		timer.StartTimer()
+// 	}
+// }
 
 func GetTimeout() time.Duration {
-	return ThisElevator.config.DoorOpenDuration
+	return elevator.config.DoorOpenDuration
+}
+
+func GetRequestStatus(floor int, button int) bool {
+	return elevator.Requests[floor][button]
+}
+
+func GetState() Elevator {
+	return elevator
 }

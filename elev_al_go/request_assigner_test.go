@@ -15,13 +15,13 @@ func TestTimeToIdle(t *testing.T) {
 	}
 	time := timeToIdle(e)
 	if time != 0 {
-		t.Errorf("Expected timeToIdle to be 0, got %d", time)
+		t.Errorf("Expected timeToIdle to be 0, got %g", time)
 	}
 
 	e.Requests[2][1] = true // Request at floor 2, hall down
 	time = timeToIdle(e)
 	if time != 10 {
-		t.Errorf("Expected timeToIdle to be 10, got %d", time)
+		t.Errorf("Expected timeToIdle to be 10, got %g", time)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestPreferredOrder(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			pOrder := preferredOrder(tc.elevators)
+			pOrder := GetBestOrder(tc.elevators)
 			for i, v := range pOrder {
 				if v != tc.expectedOrder[i] {
 					t.Errorf("Expected preferredOrder[%d] to be %d, got %d", i, tc.expectedOrder[i], v)
