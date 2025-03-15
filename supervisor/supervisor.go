@@ -1,19 +1,30 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"time"
 )
 
+const (
+	elevatorFlag        string        = "elevator_go"
+	timeout             time.Duration = 5000 * time.Millisecond
+	defaultElevatorPort               = 15657
+)
+
 var (
-	timeout      time.Duration = 5000 * time.Millisecond
-	pwd, _                     = os.Getwd()
-	elevatorFlag string        = "elevator_go"
+	pwd, _ = os.Getwd()
+	id     string
+	port   int
 )
 
 func main() {
+	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
+	flag.StringVar(&id, "id", "", "Network node id")
+	flag.Parse()
+
 	reviving := false
 	aliveChan := make(chan int)
 
@@ -65,6 +76,11 @@ func processIsAlive(flag string, aliveChan chan<- int) {
 
 func reviveElevator() {
 	fmt.Println("Running run.sh")
-	runFile := fmt.Sprintf("cd %s && ./run.sh; exec bash", pwd)
+	if port == defaultElevatorPort {
+		runFile := fmt.Sprintf("cd %s && ./run.sh %s; exec bash", pwd, id)
+		exec.Command("gnome-terminal", "--", "bash", "-c", runFile).Run()
+		return
+	}
+	runFile := fmt.Sprintf("cd %s && ./run.sh %s %d; exec bash", pwd, id, port)
 	exec.Command("gnome-terminal", "--", "bash", "-c", runFile).Run()
 }
