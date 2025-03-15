@@ -30,13 +30,8 @@ func main() {
 
 	go processIsAlive(elevatorFlag, aliveChan)
 
-	for {
-		select {
-
-		case msg := <-aliveChan:
-			reviving = tryRevive(msg, reviving)
-
-		}
+	for msg := range aliveChan {
+		reviving = tryRevive(msg, reviving)
 	}
 }
 
