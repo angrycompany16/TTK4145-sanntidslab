@@ -80,6 +80,7 @@ func main() {
 	go p2p.NodeProcess(heartbeatChan, peerRequestChan, buttonEventChan, elevatorStateChan, orderChan, id)
 
 	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
+
 }
 
 
