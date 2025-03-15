@@ -6,8 +6,8 @@ import (
 	elevalgo "sanntidslab/elev_al_go"
 	"sanntidslab/elev_al_go/timer"
 	"sanntidslab/peer"
-	"sanntidslab/utils"
 	"strconv"
+	"time"
 
 	"github.com/angrycompany16/Network-go/network/transfer"
 	"github.com/angrycompany16/driver-go/elevio"
@@ -56,10 +56,11 @@ func main() {
 
 	go elevio.PollButtons(buttonEventChan) // "Sent" to node for further action
 
-	go elevio.PollFloorSensor(floorChan) // "Sent" to elevalgo for declaring new state
+	go elevio.PollFloorSensor(floorChan)             // "Sent" to elevalgo for declaring new state
 	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
 
 	// ---- Initialize timer
+	fmt.Println(elevalgo.GetTimeout())
 	timer.SetTimeout(elevalgo.GetTimeout())
 	timer.StartTimer()
 
@@ -75,9 +76,11 @@ func main() {
 	go transfer.BroadcastSender(requestBroadCastPort, peerRequestChan)
 	go transfer.BroadcastReceiver(requestBroadCastPort, peerRequestChan)
 
-	go p2p.NodeProcess(heartbeatChan, peerRequestChan, buttonEventChan, elevatorStateChan, orderChan, id)
+	go peer.NodeProcess(peerRequestChan, heartbeatChan, buttonEventChan, elevatorStateChan, orderChan, elevalgo.GetState())
 
 	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
+	for {
+		time.Sleep(1 * time.Second)
+	}
 
 }
-

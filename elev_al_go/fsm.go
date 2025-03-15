@@ -18,8 +18,8 @@ var (
 
 // TODO: Rewrite to functional
 
-func InitFsm() Elevator {
-	return MakeUninitializedelevator()
+func InitFsm() {
+	elevator = MakeUninitializedelevator()
 }
 
 func SetAllLights(elevator Elevator) {
@@ -65,13 +65,16 @@ func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonT
 		pair := newElevator.chooseDirection()
 		newElevator.direction = pair.dir
 		newElevator.behaviour = pair.behaviour
+		fmt.Println(pair.behaviour)
 		switch pair.behaviour {
 		case doorOpen:
+			fmt.Println("door opem")
 			commands = append(commands, hardwareEffect{effect: setDoorOpenLamp, value: true})
 			commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
 			newElevator = clearAtCurrentFloor(newElevator)
 		case moving:
-			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: newElevator.direction})
+			fmt.Println("moving")
+			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
 		}
 	}
 	return newElevator, commands
@@ -138,7 +141,7 @@ func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []
 	switch newElevator.behaviour {
 	case moving:
 		if newElevator.shouldStop() {
-			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MD_Stop})
+			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
 			commands = append(commands, hardwareEffect{effect: setDoorOpenLamp, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
 			commands = append(commands, hardwareEffect{effect: startTimer, value: nil})

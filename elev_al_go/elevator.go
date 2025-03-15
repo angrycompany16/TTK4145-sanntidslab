@@ -152,10 +152,10 @@ func loadConfig() (config, error) {
 func MakeUninitializedelevator() Elevator {
 	config, err := loadConfig()
 	if err != nil {
-		// TODO: Retry here instead of just crashing
-		// This is not very fault tolerant
 		log.Fatal("Failed to initialize elevator from .yaml file")
 	}
+
+	fmt.Println(config.DoorOpenDuration)
 
 	return Elevator{
 		floor:     -1,

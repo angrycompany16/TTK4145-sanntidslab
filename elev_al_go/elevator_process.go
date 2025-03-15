@@ -1,9 +1,7 @@
 package elevalgo
 
 import (
-	"os/exec"
 	timer "sanntidslab/elev_al_go/timer"
-	requests "sanntidslab/p2p/requests"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
@@ -26,7 +24,7 @@ func ElevatorProcess(
 	/* input only channels */
 	floorChan <-chan int,
 	obstructionChan <-chan bool,
-	orderChan <-chan requests.RequestInfo,
+	orderChan <-chan elevio.ButtonEvent,
 	/* output only channels */
 	elevatorStateChan chan<- Elevator,
 ) {
@@ -36,7 +34,7 @@ func ElevatorProcess(
 	for {
 		select {
 		case requestInfo := <-orderChan:
-			newElevator, commands = requestButtonPressed(elevator, requestInfo.Floor, requestInfo.ButtonType)
+			newElevator, commands = requestButtonPressed(elevator, requestInfo.Floor, requestInfo.Button)
 			elevator = newElevator
 
 		case floor := <-floorChan:
@@ -45,18 +43,20 @@ func ElevatorProcess(
 
 		case obstructionEvent := <-obstructionChan:
 			commands = doorObstructed(elevator, obstructionEvent)
-			
+
 		case <-timer.TimeoutChan:
-	 		timer.StopTimer()
-	 		newElevator, commands = onDoorTimeout(elevator)
+			timer.StopTimer()
+			newElevator, commands = onDoorTimeout(elevator)
+
 			elevator = newElevator
 		default:
 			elevatorStateChan <- GetState()
+			timer.CheckTimeout()
+			continue
 		}
 		executeCommands(commands)
 	}
 }
-
 
 func executeCommands(commands []hardwareEffect) {
 	for _, command := range commands {
