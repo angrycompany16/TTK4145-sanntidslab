@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.0
 
 require (
-	github.com/angrycompany16/Network-go v0.0.0-20250311194518-09c9955871f3
+	github.com/angrycompany16/Network-go v0.0.0-20250313181529-0f8f3413bd5d
 	github.com/angrycompany16/driver-go v0.0.0-20250125145324-3882c5585ad9
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/mitchellh/mapstructure v1.5.0
