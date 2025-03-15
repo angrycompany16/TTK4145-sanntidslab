@@ -83,6 +83,7 @@ func main() {
 			fmt.Println("Event received")
 			elevalgo.RequestButtonPressed(buttonEvent.Floor, buttonEvent.Button)
 		case floor := <-drv_floors:
+
 			elevalgo.OnFloorArrival(floor)
 		case obstructionEvent := <-drv_obstr:
 			elevalgo.DoorObstructed(obstructionEvent)

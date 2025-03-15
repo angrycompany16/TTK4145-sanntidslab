@@ -3,7 +3,6 @@ package peer
 import (
 	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
-	"sanntidslab/utils"
 	"time"
 
 	"github.com/angrycompany16/driver-go/elevio"
@@ -24,6 +23,7 @@ var (
 
 // TODO: rename utils.go
 
+// TODO: Kinda the last piece of the puzzle: Implement this
 // Resolving the cyclic counter-y problems:
 // - Note that the problem actually occurs very rarely, as we consider every node
 //   to be a single source of truth for its own cab and hall calls
@@ -44,7 +44,7 @@ var (
 //   before. Then the node will be informed about its lost cab requests, and take these
 // - Then these calls are accepted, the node will start to to broadcast it, and then
 //   the backups will update the timestamp to be the current timestamp of the node,
-//   so when the node is done it willk be considered new information and thus it will
+//   so when the node is done it will be considered new information and thus it will
 //   overwrite the backed up requests.
 
 // A problematic case?
@@ -64,15 +64,6 @@ var (
 // - Else, redistribute the hall calls that have been backed up
 
 // NOTE: all fields must be public in structs that are being sent over the network
-type PendingRequests struct {
-	List [elevalgo.NumFloors][elevalgo.NumButtons]int // -1 represents inactive,
-	// otherwise this represents the number of elevators who have backed up this request
-}
-
-type Advertiser struct {
-	Requests [elevalgo.NumFloors][elevalgo.NumButtons]string // Contains an ID if a
-	// request is being advertised. "" if there is no request being advertised
-}
 
 type Heartbeat struct {
 	SenderId        string
@@ -80,14 +71,6 @@ type Heartbeat struct {
 	Uptime          int64
 	WorldView       map[string]peer
 	PendingRequests PendingRequests
-}
-
-type peer struct {
-	State     elevalgo.Elevator
-	Id        string
-	LastSeen  time.Time
-	Uptime    int64
-	connected bool
 }
 
 type node struct {
@@ -113,12 +96,16 @@ func NodeProcess(
 	for {
 		select {
 		case heartbeat := <-heartbeatChan:
-			peers := updatePeerList(heartbeat, nodeInstance.peers)
-			nodeInstance.peers = peers
+			updatedPeers, newPeer := updatePeerList(heartbeat, nodeInstance.peers)
+			nodeInstance.peers = updatedPeers
 
 			updatedAdvertiser := updateAdvertiser(nodeInstance.peers, nodeInstance.advertiser)
 
 			updatedPendingRequests := updatePendingRequests(heartbeat, nodeInstance.state, nodeInstance.pendingRequests)
+
+			if newPeer {
+				updatedPendingRequests = restoreLostCabCalls(updatedPendingRequests, heartbeat, nodeInstance.uptime)
+			}
 
 			order, clearedPendingRequests, ok := takeAckedRequests(updatedPendingRequests, nodeInstance.peers)
 
@@ -172,145 +159,6 @@ func newHeartbeat(node node) Heartbeat {
 	}
 }
 
-func updatePeerList(heartbeat Heartbeat, peers map[string]peer) map[string]peer {
-	newPeerList := utils.DuplicateMap(peers)
-
-	if GlobalID == heartbeat.SenderId {
-		return newPeerList
-	}
-
-	_peer, ok := newPeerList[heartbeat.SenderId]
-	if ok {
-		if !_peer.connected {
-			fmt.Println("Reconnecting pear", GlobalID)
-		}
-
-		_peer.LastSeen = time.Now()
-		_peer.State = heartbeat.State
-		_peer.Uptime = heartbeat.Uptime
-
-		for i := range elevalgo.NumFloors {
-			for j := range elevalgo.NumButtons {
-				if heartbeat.PendingRequests.List[i][j] == -1 {
-					continue
-				}
-
-				_peer.State.Requests[i][j] = true
-			}
-		}
-
-		_peer.connected = true
-
-		newPeerList[heartbeat.SenderId] = _peer
-		return newPeerList
-	}
-
-	newPeer := newPeer(heartbeat.State, heartbeat.SenderId, heartbeat.Uptime)
-	fmt.Println("New peer created: ")
-	fmt.Println(newPeer)
-
-	newPeerList[heartbeat.SenderId] = newPeer
-
-	return newPeerList
-}
-
-func checkLostPeers(peers map[string]peer) (map[string]peer, peer) {
-	newPeerList := utils.DuplicateMap(peers)
-	var lostPeer peer
-	hasLostPeer := false
-	for _, peer := range newPeerList {
-		if peer.LastSeen.Add(timeout).Before(time.Now()) && peer.connected {
-			lostPeer = peer
-			lostPeer.connected = false
-			hasLostPeer = true
-			fmt.Println("Lost peer", peer.Id)
-		}
-	}
-
-	if hasLostPeer {
-		newPeerList[lostPeer.Id] = lostPeer
-	}
-	return newPeerList, lostPeer
-}
-
-func takeAckedRequests(pendingRequests PendingRequests, peers map[string]peer) (elevio.ButtonEvent, PendingRequests, bool) {
-	for i := range elevalgo.NumFloors {
-		for j := range elevalgo.NumButtons {
-			if pendingRequests.List[i][j] == -1 {
-				continue
-			}
-
-			// TODO: Check if connected rather than len
-			if pendingRequests.List[i][j] == countConnectedPeers(peers) {
-				fmt.Println("Taking pending request")
-				pendingRequests.List[i][j] = -1
-				return elevio.ButtonEvent{
-						Floor:  i,
-						Button: elevio.ButtonType(j),
-					},
-					pendingRequests, true
-			}
-		}
-	}
-	return elevio.ButtonEvent{
-			Floor:  0,
-			Button: elevio.ButtonType(0),
-		},
-		pendingRequests, false
-}
-
-func updatePendingRequests(heartbeat Heartbeat, state elevalgo.Elevator, pendingRequests PendingRequests) PendingRequests {
-	for i := range elevalgo.NumFloors {
-		for j := range elevalgo.NumButtons {
-			// TODO: heartbeat.WorldView[id].State.Requests[i][j] is hard to read
-			if !heartbeat.WorldView[GlobalID].State.Requests[i][j] {
-				continue
-			}
-
-			if pendingRequests.List[i][j] == -1 || state.Requests[i][j] {
-				continue
-			}
-			fmt.Println("Increased acks")
-			pendingRequests.List[i][j]++ // This request has been backed up
-		}
-	}
-	return pendingRequests
-}
-
-func updateAdvertiser(peers map[string]peer, advertiser Advertiser) Advertiser {
-	for i := range elevalgo.NumFloors {
-		for j := range elevalgo.NumButtons {
-			assigneeID := advertiser.Requests[i][j]
-			if assigneeID == "" {
-				continue
-			}
-
-			if peers[assigneeID].State.Requests[i][j] {
-				fmt.Println("Removing local request")
-				advertiser.Requests[i][j] = ""
-			}
-		}
-	}
-	return advertiser
-}
-
-// For now this is very simple, self assign if cab and otherwise assign to first
-// connected peer
-func assign(buttonEvent elevio.ButtonEvent, peers map[string]peer) string {
-	if buttonEvent.Button == elevio.BT_Cab {
-		return GlobalID
-	}
-
-	for _, _peer := range peers {
-		if !_peer.connected {
-			continue
-		}
-
-		return _peer.Id
-	}
-	return GlobalID
-}
-
 // TODO: This is not very well written
 func distributeRequest(
 	buttonEvent elevio.ButtonEvent,
@@ -350,7 +198,8 @@ func redistributeLostRequests(lostPeer peer, peers map[string]peer, pendingReque
 	}
 
 	for i := range elevalgo.NumFloors {
-		for j := range elevalgo.NumButtons {
+		// TODO: Make generic wrt. number of cab buttons
+		for j := range elevalgo.NumButtons - 1 {
 			if lostPeer.State.Requests[i][j] {
 				buttonEvent := elevio.ButtonEvent{i, elevio.ButtonType(j)}
 				assigneeID := assign(buttonEvent, peers)
@@ -360,6 +209,21 @@ func redistributeLostRequests(lostPeer peer, peers map[string]peer, pendingReque
 	}
 
 	return newPendingRequests, newAdvertiser
+}
+
+func restoreLostCabCalls(pendingRequests PendingRequests, heartbeat Heartbeat, uptime int64) PendingRequests {
+	if heartbeat.SenderId == GlobalID || heartbeat.Uptime < uptime {
+		return pendingRequests
+	}
+
+	for i := range elevalgo.NumFloors {
+		// TODO: Make generic number of cab buttons
+		if heartbeat.WorldView[GlobalID].State.Requests[i][elevalgo.NumButtons-1] {
+			pendingRequests.List[i][elevalgo.NumButtons-1] = 0 // Set the cab button
+			// to have an active request
+		}
+	}
+	return pendingRequests
 }
 
 func tryReceiveRequest(advertiser Advertiser, pendingRequests PendingRequests, state elevalgo.Elevator) PendingRequests {
