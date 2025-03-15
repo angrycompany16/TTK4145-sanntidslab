@@ -50,13 +50,14 @@ func main() {
 	elevalgo.InitFsm()
 	elevalgo.InitBetweenFloors()
 
-	drv_buttons := make(chan elevio.ButtonEvent)
-	drv_floors := make(chan int)
-	drv_obstr := make(chan bool)
+	buttonEventChan := make(chan elevio.ButtonEvent)
+	floorChan := make(chan int)
+	obstructionChan := make(chan bool)
 
-	go elevio.PollButtons(drv_buttons)
-	go elevio.PollFloorSensor(drv_floors)
-	go elevio.PollObstructionSwitch(drv_obstr)
+	go elevio.PollButtons(buttonEventChan) // "Sent" to node for further action
+
+	go elevio.PollFloorSensor(floorChan) // "Sent" to elevalgo for declaring new state
+	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
 
 	// ---- Initialize timer
 	timer.SetTimeout(elevalgo.GetTimeout())
@@ -74,25 +75,9 @@ func main() {
 	go transfer.BroadcastSender(requestBroadCastPort, peerRequestChan)
 	go transfer.BroadcastReceiver(requestBroadCastPort, peerRequestChan)
 
-	go peer.NodeProcess(peerRequestChan, heartbeatChan, drv_buttons, elevatorStateChan, orderChan, elevalgo.GetState())
+	go p2p.NodeProcess(heartbeatChan, peerRequestChan, buttonEventChan, elevatorStateChan, orderChan, id)
 
-	for {
-		select {
-		case buttonEvent := <-orderChan:
-			utils.UNUSED(buttonEvent)
-			fmt.Println("Event received")
-			elevalgo.RequestButtonPressed(buttonEvent.Floor, buttonEvent.Button)
-		case floor := <-drv_floors:
+	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
 
-			elevalgo.OnFloorArrival(floor)
-		case obstructionEvent := <-drv_obstr:
-			elevalgo.DoorObstructed(obstructionEvent)
-		case <-timer.TimeoutChan:
-			timer.StopTimer()
-			elevalgo.OnDoorTimeout()
-		default:
-			elevatorStateChan <- elevalgo.GetState()
-			timer.CheckTimeout()
-		}
-	}
 }
+
