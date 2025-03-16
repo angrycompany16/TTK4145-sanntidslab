@@ -16,14 +16,8 @@ var (
 // NOTE: Scary bug: Sometimes it seems that the peers connect and disconnect constantly,
 // but i have no idea how to reproduce the bug???
 
-// TODO: Implement logging when in single elevator mode
-// Requires:
-// - Disconn check
-// - Activity logging
-
 // TODO: rename utils.go
 
-// TODO: Kinda the last piece of the puzzle: Implement this
 // Resolving the cyclic counter-y problems:
 // - Note that the problem actually occurs very rarely, as we consider every node
 //   to be a single source of truth for its own cab and hall calls
@@ -181,8 +175,6 @@ func distributeRequest(
 }
 
 func redistributeLostRequests(lostPeer peer, peers map[string]peer, pendingRequests PendingRequests, advertiser Advertiser, uptime int64) (PendingRequests, Advertiser) {
-	// TODO: Implement safety check so that both alive nodes don't redistribute the
-	// lost requests. This is to avoid duplication
 	newPendingRequests := pendingRequests
 	newAdvertiser := advertiser
 

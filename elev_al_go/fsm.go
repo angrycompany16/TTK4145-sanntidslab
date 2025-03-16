@@ -16,8 +16,6 @@ var (
 	elevator Elevator
 )
 
-// TODO: Rewrite to functional
-
 func InitFsm() {
 	elevator = MakeUninitializedelevator()
 }
@@ -36,9 +34,6 @@ func InitBetweenFloors() {
 	elevator.behaviour = moving
 }
 
-// TODO: Now we have no struct in this, but we still have a singleton (even worse, it's
-// public...), and sure, defining these functions as methods on the struct means that
-// they can modify any value in the struct, but they can do that now as well???
 func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonType) (newElevator Elevator, commands []hardwareEffect) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)

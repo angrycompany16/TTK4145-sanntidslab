@@ -23,18 +23,13 @@ const (
 // TODO: *Read* code complete checklist properly and at least try to make the code
 // quality good
 
-// TODO: Implement the backup actually taking lost requests itself
-// TODO: In case of disconnect, all requests should also be taken
-// TODO: Arbitration/priority system to find out who should take
-// This can be done with one behaviour mode
-
 // A note on convention before i forget:
 // - Orders: Will be executed by elevator, will cause lights to activate
 // - Requests: Abstract orders that haven't yet been confirmed/acknowledged
 
 // TODO: Consider: Should obstruction be its own process?
 
-// TODO: Door not working
+// TODO: Implement crashing in case of obstruction or motor failure
 
 func main() {
 	// ---- Flags
@@ -60,7 +55,6 @@ func main() {
 	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
 
 	// ---- Initialize timer
-	fmt.Println(elevalgo.GetTimeout())
 	timer.SetTimeout(elevalgo.GetTimeout())
 	timer.StartTimer()
 

@@ -15,8 +15,6 @@ type peer struct {
 	connected bool
 }
 
-// TODO: For now we just return an empty peer on update; maybe this could be done better?
-// Could take inspo from the PeerUpdate thingy
 func updatePeerList(heartbeat Heartbeat, peers map[string]peer) (map[string]peer, bool) {
 	newPeerList := utils.DuplicateMap(peers)
 
