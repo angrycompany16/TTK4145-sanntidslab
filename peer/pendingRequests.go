@@ -19,7 +19,6 @@ func takeAckedRequests(pendingRequests PendingRequests, peers map[string]peer) (
 				continue
 			}
 
-			// TODO: Check if connected rather than len
 			if pendingRequests.List[i][j] == countConnectedPeers(peers) {
 				fmt.Println("Taking pending request")
 				pendingRequests.List[i][j] = -1

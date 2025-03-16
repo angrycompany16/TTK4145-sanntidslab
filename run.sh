@@ -13,7 +13,7 @@ if [ -z "$2" ]; then
     gnome-terminal -- bash -c "./bin/elevator_go -id $1; exec bash"
     gnome-terminal -- bash -c "./bin/supervisor_go -id $1; exec bash"
 else
-    gnome-terminal -- bash -c "./SimElevatorServer; exec bash"
+    gnome-terminal -- bash -c "./bin/SimElevatorServer; exec bash"
     gnome-terminal -- bash -c "./bin/elevator_go -id $1 -port $2; exec bash"
     gnome-terminal -- bash -c "./bin/supervisor_go -id $1 -port $2 ; exec bash"
 fi
