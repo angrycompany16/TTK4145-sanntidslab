@@ -28,9 +28,9 @@ func ElevatorProcess(
 	/* output only channels */
 	elevatorStateChan chan<- Elevator,
 ) {
-
 	var commands []hardwareEffect
 	var newElevator Elevator
+	
 	for {
 		select {
 		case requestInfo := <-orderChan:
@@ -47,8 +47,8 @@ func ElevatorProcess(
 		case <-timer.TimeoutChan:
 			timer.StopTimer()
 			newElevator, commands = onDoorTimeout(elevator)
-
 			elevator = newElevator
+			
 		default:
 			elevatorStateChan <- GetState()
 			timer.CheckTimeout()

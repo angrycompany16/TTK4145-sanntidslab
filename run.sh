@@ -8,6 +8,8 @@ bash -c 'pkill elevator_go'
 bash -c 'pkill elevatorserver'
 bash -c 'pkill -f SimElevatorServer'
 
+# the command exec bash makes the process and terminal independent. If we want terminals to close when killed remove it.
+
 if [ -z "$2" ]; then
     gnome-terminal -- bash -c "elevatorserver; exec bash"
     gnome-terminal -- bash -c "./bin/elevator_go -id $1; exec bash"

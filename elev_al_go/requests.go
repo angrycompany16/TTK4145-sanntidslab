@@ -4,7 +4,7 @@ import "github.com/angrycompany16/driver-go/elevio"
 
 func (e *Elevator) requestsAbove() bool {
 	for f := e.floor + 1; f < NumFloors; f++ {
-		for btn := 0; btn < NumButtons; btn++ {
+		for btn := range NumButtons {
 			if e.Requests[f][btn] {
 				return true
 			}
@@ -14,8 +14,8 @@ func (e *Elevator) requestsAbove() bool {
 }
 
 func (e *Elevator) requestsBelow() bool {
-	for f := 0; f < e.floor; f++ {
-		for btn := 0; btn < NumButtons; btn++ {
+	for f := range e.floor {
+		for btn := range NumButtons {
 			if e.Requests[f][btn] {
 				return true
 			}
@@ -25,7 +25,7 @@ func (e *Elevator) requestsBelow() bool {
 }
 
 func (e *Elevator) requestsHere() bool {
-	for btn := 0; btn < NumButtons; btn++ {
+	for btn := range NumButtons {
 		if e.Requests[e.floor][btn] {
 			return true
 		}
@@ -98,7 +98,7 @@ func (e *Elevator) shouldClearImmediately(buttonFloor int, buttonType elevio.But
 func clearAtCurrentFloor(e Elevator) Elevator {
 	switch e.config.ClearRequestVariant {
 	case clearAll:
-		for btn := 0; btn < NumButtons; btn++ {
+		for btn := range NumButtons {
 			e.Requests[e.floor][btn] = false
 		}
 

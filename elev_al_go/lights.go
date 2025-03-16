@@ -19,19 +19,19 @@ func (e *Elevator) SetLights(lightsState LightsState) {
 	}
 	cachedLightsState = lightsState
 
-	for floor := 0; floor < NumFloors; floor++ {
-		for btn := 0; btn < NumButtons; btn++ {
+	for floor := range NumFloors {
+		for btn := range NumButtons {
 			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, lightsState.Lights[floor][btn])
 		}
 	}
 }
 
 func MergeHallLights(localElevator Elevator, allElevators []Elevator) (lightsState LightsState) {
-	for floor := 0; floor < NumFloors; floor++ {
+	for floor := range NumFloors {	
 		// Note: This only works because hall buttons come first
 		// Sets hall buttons based on global elevator states,
 		// Set cab buttons based on local elevator states.
-		for btn := 0; btn < numHallButtons; btn++ {
+		for btn := range numHallButtons {
 			for _, elevator := range allElevators {
 				lightsState.Lights[floor][btn] = lightsState.Lights[floor][btn] || elevator.Requests[floor][btn]
 			}
@@ -41,4 +41,4 @@ func MergeHallLights(localElevator Elevator, allElevators []Elevator) (lightsSta
 		}
 	}
 	return
-}
+} 
