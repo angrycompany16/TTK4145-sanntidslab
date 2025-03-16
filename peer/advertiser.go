@@ -21,7 +21,7 @@ func updateAdvertiser(peers map[string]peer, advertiser Advertiser) Advertiser {
 			}
 
 			if peers[assigneeID].State.Requests[i][j] {
-				fmt.Println("Removing local request")
+				fmt.Println("Removing advertised request")
 				advertiser.Requests[i][j] = ""
 			}
 		}

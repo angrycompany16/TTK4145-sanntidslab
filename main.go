@@ -45,7 +45,7 @@ func main() {
 	elevalgo.InitFsm()
 	elevalgo.InitBetweenFloors()
 
-	buttonEventChan := make(chan elevio.ButtonEvent)
+	buttonEventChan := make(chan elevio.ButtonEvent, 1)
 	floorChan := make(chan int)
 	obstructionChan := make(chan bool)
 

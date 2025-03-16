@@ -34,7 +34,7 @@ func updatePeerList(heartbeat Heartbeat, peers map[string]peer) (map[string]peer
 
 		for i := range elevalgo.NumFloors {
 			for j := range elevalgo.NumButtons {
-				if heartbeat.PendingRequests.List[i][j] == -1 {
+				if !heartbeat.PendingRequests.List[i][j].Active {
 					continue
 				}
 
