@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
 
 	"github.com/angrycompany16/driver-go/elevio"
@@ -12,28 +11,27 @@ type Advertiser struct {
 	// request is being advertised. "" if there is no request being advertised
 }
 
-func updateAdvertiser(peers map[string]peer, advertiser Advertiser) Advertiser {
+// Stops advertising if a peer is taking the request
+func updateAdvertiser(_node node) Advertiser {
 	for i := range elevalgo.NumFloors {
 		for j := range elevalgo.NumButtons {
-			assigneeID := advertiser.Requests[i][j]
+			assigneeID := _node.advertiser.Requests[i][j]
 			if assigneeID == "" {
 				continue
 			}
 
-			if peers[assigneeID].State.Requests[i][j] {
-				fmt.Println("Removing advertised request")
-				advertiser.Requests[i][j] = ""
+			if _node.peers[assigneeID].State.Requests[i][j] {
+				_node.advertiser.Requests[i][j] = ""
 			}
 		}
 	}
-	return advertiser
+	return _node.advertiser
 }
 
-// For now this is very simple, self assign if cab and otherwise assign to first
-// connected peer
+// TODO: implement
 func assign(buttonEvent elevio.ButtonEvent, peers map[string]peer) string {
 	if buttonEvent.Button == elevio.BT_Cab {
-		return GlobalID
+		return globalID
 	}
 
 	for _, _peer := range peers {
@@ -43,5 +41,5 @@ func assign(buttonEvent elevio.ButtonEvent, peers map[string]peer) string {
 
 		return _peer.Id
 	}
-	return GlobalID
+	return globalID
 }

@@ -41,7 +41,7 @@ func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonT
 	frame, _ := frames.Next()
 
 	if !DisablePrinting {
-		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, buttonToString(buttonType))
+		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, ButtonToString(buttonType))
 		elevator.print()
 	}
 

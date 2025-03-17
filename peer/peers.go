@@ -3,9 +3,21 @@ package peer
 import (
 	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
-	"sanntidslab/utils"
+	"sanntidslab/mapfunctions"
 	"time"
 )
+
+var (
+	timeout = time.Millisecond * 500
+)
+
+type Heartbeat struct {
+	SenderId        string
+	State           elevalgo.Elevator
+	Uptime          int64
+	WorldView       map[string]peer
+	PendingRequests PendingRequests
+}
 
 type peer struct {
 	State     elevalgo.Elevator
@@ -16,16 +28,16 @@ type peer struct {
 }
 
 func updatePeerList(heartbeat Heartbeat, peers map[string]peer) (map[string]peer, bool) {
-	newPeerList := utils.DuplicateMap(peers)
+	newPeerList := mapfunctions.DuplicateMap(peers)
 
-	if GlobalID == heartbeat.SenderId {
+	if globalID == heartbeat.SenderId {
 		return newPeerList, false
 	}
 
 	_peer, ok := newPeerList[heartbeat.SenderId]
 	if ok {
 		if !_peer.connected {
-			fmt.Println("Reconnecting pear", GlobalID)
+			fmt.Println("Reconnecting pear", globalID)
 		}
 
 		_peer.LastSeen = time.Now()
@@ -49,8 +61,7 @@ func updatePeerList(heartbeat Heartbeat, peers map[string]peer) (map[string]peer
 	}
 
 	newPeer := newPeer(heartbeat.State, heartbeat.SenderId, heartbeat.Uptime)
-	fmt.Println("New peer created: ")
-	fmt.Println(newPeer)
+	fmt.Println("New peer created: peer", newPeer.Id)
 
 	newPeerList[heartbeat.SenderId] = newPeer
 
@@ -58,9 +69,10 @@ func updatePeerList(heartbeat Heartbeat, peers map[string]peer) (map[string]peer
 }
 
 func checkLostPeers(peers map[string]peer) (map[string]peer, peer) {
-	newPeerList := utils.DuplicateMap(peers)
+	newPeerList := mapfunctions.DuplicateMap(peers)
 	var lostPeer peer
 	hasLostPeer := false
+	// TODO: Check if there is a heartbeat waiting
 	for _, peer := range newPeerList {
 		if peer.LastSeen.Add(timeout).Before(time.Now()) && peer.connected {
 			lostPeer = peer
@@ -74,4 +86,23 @@ func checkLostPeers(peers map[string]peer) (map[string]peer, peer) {
 		newPeerList[lostPeer.Id] = lostPeer
 	}
 	return newPeerList, lostPeer
+}
+
+func countConnectedPeers(peers map[string]peer) (connectedPeers int) {
+	for _, _peer := range peers {
+		if _peer.connected {
+			connectedPeers++
+		}
+	}
+	return connectedPeers
+}
+
+func newPeer(state elevalgo.Elevator, id string, uptime int64) peer {
+	return peer{
+		State:     state,
+		Id:        id,
+		LastSeen:  time.Now(),
+		Uptime:    uptime,
+		connected: true,
+	}
 }

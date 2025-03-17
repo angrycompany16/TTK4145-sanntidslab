@@ -79,7 +79,7 @@ func dirToString(d direction) string {
 	}
 }
 
-func buttonToString(b elevio.ButtonType) string {
+func ButtonToString(b elevio.ButtonType) string {
 	switch b {
 	case elevio.BT_HallUp:
 		return "B_HallUp"
@@ -153,8 +153,6 @@ func MakeUninitializedelevator() Elevator {
 	if err != nil {
 		log.Fatal("Failed to initialize elevator from .yaml file")
 	}
-
-	fmt.Println(config.DoorOpenDuration)
 
 	return Elevator{
 		floor:     -1,

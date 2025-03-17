@@ -3,7 +3,7 @@ package peer
 import (
 	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
-	"sanntidslab/utils"
+	"sanntidslab/mapfunctions"
 
 	"github.com/angrycompany16/driver-go/elevio"
 )
@@ -14,33 +14,29 @@ type PendingRequest struct {
 }
 
 type PendingRequests struct {
-	// TODO: either check continuously or replace with map[string]bool
-	// However we also need some way of representing whether it is inactive...
-	List [elevalgo.NumFloors][elevalgo.NumButtons]PendingRequest // -1 represents inactive,
-	// otherwise this represents the number of elevators who have backed up this request
+	List [elevalgo.NumFloors][elevalgo.NumButtons]PendingRequest
 }
 
-// BUG: Sometimes the elevator takes requests without ack
-// Sometimes it also seems that acks don't arrive
-
-func takeAckedRequests(pendingRequests PendingRequests, peers map[string]peer) (elevio.ButtonEvent, PendingRequests, bool) {
+func takeAckedRequests(_node node) (elevio.ButtonEvent, PendingRequests, bool) {
 	for i := range elevalgo.NumFloors {
 		for j := range elevalgo.NumButtons {
-			if !pendingRequests.List[i][j].Active {
+			if !_node.pendingRequests.List[i][j].Active {
 				continue
 			}
 
-			newAckMap := utils.DuplicateMap(pendingRequests.List[i][j].acks)
+			newAckMap := mapfunctions.DuplicateMap(_node.pendingRequests.List[i][j].acks)
 
-			if fullyAcked(pendingRequests.List[i][j], peers) {
-				pendingRequests.List[i][j].Active = false
-				pendingRequests.List[i][j].acks = clearAcks(newAckMap)
+			if fullyAcked(_node.pendingRequests.List[i][j], _node.peers) {
+				_node.pendingRequests.List[i][j].Active = false
+				_node.pendingRequests.List[i][j].acks = clearAcks(newAckMap)
+
+				fmt.Printf("Taking request in floor %d, buttontype %s\n", i, elevalgo.ButtonToString(elevio.ButtonType(j)))
 
 				return elevio.ButtonEvent{
 						Floor:  i,
 						Button: elevio.ButtonType(j),
 					},
-					pendingRequests, true
+					_node.pendingRequests, true
 			}
 		}
 	}
@@ -48,36 +44,36 @@ func takeAckedRequests(pendingRequests PendingRequests, peers map[string]peer) (
 			Floor:  0,
 			Button: elevio.ButtonType(0),
 		},
-		pendingRequests, false
+		_node.pendingRequests, false
 }
 
-func updatePendingRequests(heartbeat Heartbeat, state elevalgo.Elevator, pendingRequests PendingRequests) PendingRequests {
+// Updates acks for pending requests based on heartbeat
+func updatePendingRequests(heartbeat Heartbeat, _node node) PendingRequests {
 	for i := range elevalgo.NumFloors {
 		for j := range elevalgo.NumButtons {
-			// TODO: heartbeat.WorldView[id].State.Requests[i][j] is hard to read
-
-			if !heartbeat.WorldView[GlobalID].State.Requests[i][j] {
+			if !heartbeat.WorldView[globalID].State.Requests[i][j] {
 				continue
 			}
 
-			// TODO: Maybe remove the check for whether we have already taken the request?
-			if !pendingRequests.List[i][j].Active || state.Requests[i][j] {
+			if !_node.pendingRequests.List[i][j].Active {
 				continue
 			}
 
-			newAckMap := utils.DuplicateMap(pendingRequests.List[i][j].acks)
-			// Already acked?
+			newAckMap := mapfunctions.DuplicateMap(_node.pendingRequests.List[i][j].acks)
+
 			if newAckMap[heartbeat.SenderId] {
 				continue
 			}
 
-			// TODO: Visualizer of how many acks are received?
-			fmt.Println("Received ack from node", heartbeat.SenderId)
 			newAckMap[heartbeat.SenderId] = true
-			pendingRequests.List[i][j].acks = newAckMap
+			_node.pendingRequests.List[i][j].acks = newAckMap
+
+			fmt.Printf(" ~ Received ack from node %s ~\n", heartbeat.SenderId)
+			PrintRequest(i, elevio.ButtonType(j))
+			fmt.Printf("Current state: %d/%d acks\n\n", countAcks(_node.pendingRequests.List[i][j]), countConnectedPeers(_node.peers))
 		}
 	}
-	return pendingRequests
+	return _node.pendingRequests
 }
 
 func fullyAcked(pendingRequest PendingRequest, peers map[string]peer) bool {
@@ -90,11 +86,23 @@ func fullyAcked(pendingRequest PendingRequest, peers map[string]peer) bool {
 }
 
 func clearAcks(acks map[string]bool) map[string]bool {
-	clearedAcks := utils.DuplicateMap(acks)
+	clearedAcks := mapfunctions.DuplicateMap(acks)
 	for id := range clearedAcks {
 		clearedAcks[id] = false
 	}
 	return clearedAcks
+}
+
+func countAcks(pendingRequest PendingRequest) (sum int) {
+	if !pendingRequest.Active {
+		return
+	}
+	for _, ack := range pendingRequest.acks {
+		if ack {
+			sum++
+		}
+	}
+	return
 }
 
 func makePendingRequests() PendingRequests {
@@ -114,4 +122,8 @@ func makePendingRequest() PendingRequest {
 		acks:   make(map[string]bool),
 		Active: false,
 	}
+}
+
+func PrintRequest(floor int, buttonType elevio.ButtonType) {
+	fmt.Printf("Request at floor: %d, button type: %s\n", floor, elevalgo.ButtonToString(buttonType))
 }

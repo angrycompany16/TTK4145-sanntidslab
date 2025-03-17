@@ -9,15 +9,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/angrycompany16/Network-go/network/transfer"
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
 const (
-	requestBufferSize    = 1
-	defaultElevatorPort  = 15657 /* I think? */
-	stateBroadcastPort   = 36251 // Akkordrekke
-	requestBroadCastPort = 12345
+	requestBufferSize   = 1
+	defaultElevatorPort = 15657 /* I think? */
+
 )
 
 // TODO: *Read* code complete checklist properly and at least try to make the code
@@ -34,8 +32,9 @@ const (
 func main() {
 	// ---- Flags
 	var port int
+	var id string
 	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
-	flag.StringVar(&peer.GlobalID, "id", "", "Network node id")
+	flag.StringVar(&id, "id", "", "Network node id")
 	fmt.Println("Started!")
 
 	flag.Parse()
@@ -60,17 +59,9 @@ func main() {
 
 	// ---- Initialize networking
 	orderChan := make(chan elevio.ButtonEvent, 1)
-	peerRequestChan := make(chan peer.Advertiser) // Node <- Network
-	heartbeatChan := make(chan peer.Heartbeat)
 	elevatorStateChan := make(chan elevalgo.Elevator)
 
-	go transfer.BroadcastSender(stateBroadcastPort, heartbeatChan)
-	go transfer.BroadcastReceiver(stateBroadcastPort, heartbeatChan)
-
-	go transfer.BroadcastSender(requestBroadCastPort, peerRequestChan)
-	go transfer.BroadcastReceiver(requestBroadCastPort, peerRequestChan)
-
-	go peer.NodeProcess(peerRequestChan, heartbeatChan, buttonEventChan, elevatorStateChan, orderChan, elevalgo.GetState())
+	go peer.NodeProcess(buttonEventChan, elevatorStateChan, orderChan, elevalgo.GetState(), id)
 
 	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
 	for {
