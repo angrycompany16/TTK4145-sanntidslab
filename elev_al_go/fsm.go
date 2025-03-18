@@ -137,7 +137,6 @@ func doorObstructed(e Elevator, isObstructed bool) (commands []hardwareEffect) {
 	if !isObstructed {
 		return commands
 	}
-	fmt.Println("Obstructed")
 
 	if e.behaviour == doorOpen {
 		commands = append(commands, hardwareEffect{effect: startTimer, value: nil})

@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	elevalgo "sanntidslab/elev_al_go"
-	"sanntidslab/elev_al_go/timer"
-	"sanntidslab/peer"
+	"sanntidslab/networking"
+	"sanntidslab/timer"
 	"strconv"
 	"time"
 
@@ -13,24 +13,29 @@ import (
 )
 
 const (
-	requestBufferSize   = 1
-	defaultElevatorPort = 15657 /* I think? */
-
+	defaultElevatorPort = 15657
+	obstructionTimeout  = time.Second * 3
+	motorTimeout        = time.Second * 1000000
 )
+
+// TODO: A lot of things need more testing
+// TODO: implement request assignment so it's actually correct
+// - Doesn't work???
+// TODO: Implement crashing in case of obstruction or motor failure
+// TODO: Disconnect simulator: block all networking channels
+// TODO: Lights
+// TODO: Unit tests?
 
 // TODO: *Read* code complete checklist properly and at least try to make the code
 // quality good
-
-// A note on convention before i forget:
-// - Orders: Will be executed by elevator, will cause lights to activate
-// - Requests: Abstract orders that haven't yet been confirmed/acknowledged
-
 // TODO: Consider: Should obstruction be its own process?
 
-// TODO: Implement crashing in case of obstruction or motor failure
+// TODO: Create publisher system to allow one channel to have multiple listeners?
+
+// TODO: problem: Lights flicker a lot
 
 func main() {
-	// ---- Flags
+	// ---- Flags ----
 	var port int
 	var id string
 	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
@@ -39,7 +44,7 @@ func main() {
 
 	flag.Parse()
 
-	// ---- Initialize elevator
+	// ---- Initialize elevator and driver ----
 	elevio.Init("localhost:"+strconv.Itoa(port), elevalgo.NumFloors)
 	elevalgo.InitFsm()
 	elevalgo.InitBetweenFloors()
@@ -48,24 +53,54 @@ func main() {
 	floorChan := make(chan int)
 	obstructionChan := make(chan bool)
 
-	go elevio.PollButtons(buttonEventChan) // "Sent" to node for further action
+	go elevio.PollButtons(buttonEventChan)
+	// TODO: Continuous floor sensor detection
+	go elevio.PollFloorSensor(floorChan)
+	go elevio.PollObstructionSwitch(obstructionChan)
 
-	go elevio.PollFloorSensor(floorChan)             // "Sent" to elevalgo for declaring new state
-	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
+	// ---- Initialize timers ----
+	// Door timer
+	startDoorTimerChan := make(chan int)
+	doorTimeoutChan := make(chan int)
+	go timer.RunTimer(startDoorTimerChan, doorTimeoutChan, elevalgo.GetTimeout(), false, true, "Door timer")
 
-	// ---- Initialize timer
-	timer.SetTimeout(elevalgo.GetTimeout())
-	timer.StartTimer()
+	// Obstruction timer
+	startObstructionTimerChan := make(chan int)
+	obstructionTimeoutChan := make(chan int)
+	go timer.RunTimer(startObstructionTimerChan, obstructionTimeoutChan, obstructionTimeout, true, true, "Obstruction timer")
 
-	// ---- Initialize networking
+	// Motor timer
+	startMotorTimerChan := make(chan int)
+	motorTimeoutChan := make(chan int)
+	go timer.RunTimer(startMotorTimerChan, motorTimeoutChan, motorTimeout, true, false, "Motor timer")
+
+	// ---- Communication with networking node ----
 	orderChan := make(chan elevio.ButtonEvent, 1)
-	elevatorStateChan := make(chan elevalgo.Elevator)
+	elevatorStateChan := make(chan elevalgo.Elevator, 1)
+	peerStateChan := make(chan []elevalgo.Elevator, 1)
 
-	go peer.NodeProcess(buttonEventChan, elevatorStateChan, orderChan, elevalgo.GetState(), id)
+	// ---- Spawn core threads, networking and elevator ----
+	go networking.RunNode(
+		buttonEventChan,
+		elevatorStateChan,
+		orderChan,
+		peerStateChan,
+		elevalgo.GetState(),
+		id,
+	)
+	go elevalgo.RunElevator(
+		floorChan,
+		obstructionChan,
+		orderChan,
+		doorTimeoutChan,
+		peerStateChan,
+		elevatorStateChan,
+		startDoorTimerChan,
+		startObstructionTimerChan,
+		startMotorTimerChan,
+	)
 
-	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
 	for {
 		time.Sleep(1 * time.Second)
 	}
-
 }

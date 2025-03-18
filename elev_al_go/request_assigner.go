@@ -12,7 +12,6 @@ const TRAVEL_TIME = 1.0
 // Make a copy of each elevator and use as input, add the new order to each elevator or pass it as a parameter in following func.
 func timeToIdle(e Elevator) float64 {
 	duration := 0.0
-	// doorOpenTime := 3 //int(e.config.DoorOpenDuration)
 
 	switch e.behaviour {
 	case idle:

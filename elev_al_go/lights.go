@@ -12,7 +12,7 @@ type LightsState struct {
 	Lights [NumFloors][NumButtons]bool
 }
 
-func (e *Elevator) SetLights(lightsState LightsState) {
+func SetLights(lightsState LightsState) {
 	// No point in setting the lights to what they already are
 	if lightsState == cachedLightsState {
 		return
@@ -27,7 +27,7 @@ func (e *Elevator) SetLights(lightsState LightsState) {
 }
 
 func MergeHallLights(localElevator Elevator, allElevators []Elevator) (lightsState LightsState) {
-	for floor := range NumFloors {	
+	for floor := range NumFloors {
 		// Note: This only works because hall buttons come first
 		// Sets hall buttons based on global elevator states,
 		// Set cab buttons based on local elevator states.
@@ -41,4 +41,4 @@ func MergeHallLights(localElevator Elevator, allElevators []Elevator) (lightsSta
 		}
 	}
 	return
-} 
+}

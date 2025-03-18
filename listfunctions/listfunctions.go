@@ -1,4 +1,4 @@
-package mapfunctions
+package listfunctions
 
 func DuplicateMap[V any, X comparable](input map[X]V) map[X]V {
 	result := make(map[X]V, 0)
