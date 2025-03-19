@@ -95,6 +95,7 @@ func RunNode(
 			advertiserChan <- nodeInstance.advertiser
 
 			if hasOrder {
+				fmt.Println("Giving order")
 				orderChan <- order
 			}
 

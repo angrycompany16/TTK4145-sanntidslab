@@ -23,8 +23,6 @@ const (
 // - Doesn't work???
 // TODO: Implement crashing in case of obstruction or motor failure
 // TODO: Disconnect simulator: block all networking channels
-// TODO: Lights
-// TODO: Unit tests?
 
 // TODO: *Read* code complete checklist properly and at least try to make the code
 // quality good

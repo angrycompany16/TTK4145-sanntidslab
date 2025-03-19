@@ -1,6 +1,8 @@
 package elevalgo
 
 import (
+	"fmt"
+
 	"github.com/angrycompany16/driver-go/elevio"
 )
 
@@ -32,26 +34,33 @@ func RunElevator(
 	startObstructionTimerChan chan<- int,
 	startMotorTimerChan chan<- int,
 ) {
-	var commands []hardwareEffect
 	var newElevator Elevator
 
 	for {
+		var commands []hardwareEffect
+
 		select {
 		case requestInfo := <-orderChan:
+			fmt.Println("Order received")
 			newElevator, commands = requestButtonPressed(elevator, requestInfo.Floor, requestInfo.Button)
 			elevator = newElevator
 		case floor := <-floorChan:
+			// fmt.Println("Arrived on floor")
 			newElevator, commands = onFloorArrival(elevator, floor)
 			elevator = newElevator
 		case obstructionEvent := <-obstructionChan:
+			// fmt.Println("Obstruction event")
 			commands = doorObstructed(elevator, obstructionEvent)
 			if !obstructionEvent {
 				startObstructionTimerChan <- 1
 			}
 		case <-doorTimeoutChan:
+			fmt.Println("Door timed out")
 			newElevator, commands = onDoorTimeout(elevator)
+			fmt.Println(commands)
 			elevator = newElevator
 		case peerStates := <-peerStatesChan:
+			// utils.UNUSED(peerStates)
 			lightsState := MergeHallLights(elevator, append(peerStates, elevator))
 			SetLights(lightsState)
 		default:
@@ -72,9 +81,10 @@ func executeCommands(
 		case setMotorDirection:
 			direction := command.value.(elevio.MotorDirection)
 			elevio.SetMotorDirection(direction)
-			if direction == elevio.MD_Up || direction == elevio.MD_Down {
-				startMotorTimerChan <- 1
-			}
+			fmt.Println("Setting motor direction")
+			// if direction == elevio.MD_Up || direction == elevio.MD_Down {
+			// 	startMotorTimerChan <- 1
+			// }
 		case setDoorOpenLamp:
 			elevio.SetDoorOpenLamp(command.value.(bool))
 		case setFloorIndicator:

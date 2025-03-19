@@ -14,6 +14,7 @@ type LightsState struct {
 
 func SetLights(lightsState LightsState) {
 	// No point in setting the lights to what they already are
+	// fmt.Println("Setting lights")
 	if lightsState == cachedLightsState {
 		return
 	}
