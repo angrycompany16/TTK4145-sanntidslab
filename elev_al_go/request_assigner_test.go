@@ -25,7 +25,7 @@ func TestTimeToIdle(t *testing.T) {
 	}
 }
 
-func TestPreferredOrder(t *testing.T) {
+func TestGetBestOrder(t *testing.T) {
 	c := config{1, 3}
 	testCases := []struct {
 		name          string
@@ -68,19 +68,44 @@ func TestPreferredOrder(t *testing.T) {
 			},
 			expectedOrder: []int{0, 1},
 		},
+		{
+			name: "Two elevators in bottom floor, one with call in top floor, hall up request in second",
+			elevators: []Elevator{
+				{
+					floor:     0,
+					direction: stop,
+					behaviour: idle,
+					config:    c,
+				},
+				{
+					floor:     0,
+					direction: up,
+					behaviour: moving,
+					config:    c,
+				},
+			},
+			expectedOrder: []int{0, 1},
+		},
 	}
 	// Case 0:
 	// Incoming Order:
-	testCases[0].elevators[0].Requests[1][0] = true // Request at floor 1, hall up
-	testCases[0].elevators[1].Requests[1][0] = true // Request at floor 1, hall up
+	testCases[0].elevators[0].Requests[1][0] = true // Request at floor 2, hall up
+	testCases[0].elevators[1].Requests[1][0] = true // Request at floor 2, hall up
 
 	// Case 1:
 	// Start State:
 	testCases[1].elevators[1].Requests[3][2] = true // Cab call at floor 4 (index3)
 	testCases[1].elevators[1].Requests[2][0] = true // Request at floor 3, hall up
 	//Incoming Order:
-	testCases[1].elevators[0].Requests[2][1] = true // Request at floor 2, hall down
-	testCases[1].elevators[1].Requests[2][1] = true // Request at floor 2, hall down
+	testCases[1].elevators[0].Requests[2][1] = true // Request at floor 3, hall down
+	testCases[1].elevators[1].Requests[2][1] = true // Request at floor 3, hall down
+
+	// Case 2:
+	// Start State:
+	testCases[2].elevators[1].Requests[3][1] = true // Request at floor 4, hall down
+	// Incoming Order:
+	testCases[2].elevators[0].Requests[1][0] = true // Request at floor 2, hall up
+	testCases[2].elevators[1].Requests[1][0] = true // Request at floor 2, hall up
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
