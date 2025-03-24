@@ -13,19 +13,21 @@ type timer struct {
 }
 
 func RunTimer(
-	startChan <-chan int,
+	resetChan <-chan int,
+	stopChan <-chan int,
 	timeoutChan chan<- int,
 
 	timeout time.Duration,
 	panicOnTimeout bool,
-	startActive bool,
 	name string,
 ) {
-	timerInstance := newTimer(timeout, startActive)
+	timerInstance := newTimer(timeout)
 
 	for {
 		select {
-		case <-startChan:
+		case <-stopChan:
+			timerInstance.active = false
+		case <-resetChan:
 			timerInstance.startTime = time.Now()
 			timerInstance.active = true
 		default:
@@ -38,6 +40,7 @@ func RunTimer(
 				timeoutChan <- 1
 			}
 			timerInstance.timedOutCache = timedOut
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 }
@@ -47,10 +50,10 @@ func CheckTimeout(_timer timer) bool {
 	return timedOut && timedOut != _timer.timedOutCache
 }
 
-func newTimer(timeout time.Duration, startActive bool) timer {
+func newTimer(timeout time.Duration) timer {
 	return timer{
 		startTime:     time.Now(),
-		active:        startActive,
+		active:        false,
 		timedOutCache: false,
 		timeout:       timeout,
 	}

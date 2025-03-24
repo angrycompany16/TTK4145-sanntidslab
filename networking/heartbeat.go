@@ -1,6 +1,6 @@
 package networking
 
-import elevalgo "sanntidslab/elev_al_go"
+import elevalgo "sanntidslab/elevalgo"
 
 type Heartbeat struct {
 	SenderId        string

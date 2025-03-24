@@ -2,15 +2,15 @@ package networking
 
 import (
 	"fmt"
-	elevalgo "sanntidslab/elev_al_go"
+	elevalgo "sanntidslab/elevalgo"
+	"sanntidslab/elevio"
 	"sanntidslab/listfunctions"
-
-	"github.com/angrycompany16/driver-go/elevio"
 )
 
 type PendingRequest struct {
 	acks   map[string]bool
 	Active bool
+	UUID   string
 }
 
 type PendingRequestList struct {
@@ -21,6 +21,7 @@ type PendingRequestList struct {
 func takeAckedRequests(_node node) (elevio.ButtonEvent, PendingRequestList, bool) {
 	for i := range elevalgo.NumFloors {
 		for j := range elevalgo.NumButtons {
+
 			if !_node.pendingRequestList.L[i][j].Active {
 				continue
 			}
@@ -52,7 +53,7 @@ func takeAckedRequests(_node node) (elevio.ButtonEvent, PendingRequestList, bool
 func updatePendingRequests(heartbeat Heartbeat, _node node) PendingRequestList {
 	for i := range elevalgo.NumFloors {
 		for j := range elevalgo.NumButtons {
-			if !heartbeat.WorldView[nodeID].State.Requests[i][j] {
+			if !heartbeat.WorldView[nodeID].VirtualState.Requests[i][j] {
 				continue
 			}
 

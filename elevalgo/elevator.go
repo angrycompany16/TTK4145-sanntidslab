@@ -3,22 +3,15 @@ package elevalgo
 import (
 	"fmt"
 	"log"
-	"os"
-	"path"
-	"time"
-
-	"github.com/angrycompany16/driver-go/elevio"
-	"github.com/go-yaml/yaml"
+	"sanntidslab/elevio"
 )
 
 const (
 	NumFloors      = 4
 	NumCabButtons  = 1
-	numHallButtons = 2
-	NumButtons     = NumCabButtons + numHallButtons
+	NumHallButtons = 2
+	NumButtons     = NumCabButtons + NumHallButtons
 )
-
-var ConfigPath = path.Join("elev_al_go", "elevator_config.yaml")
 
 type elevatorBehaviour int
 
@@ -26,18 +19,6 @@ const (
 	idle elevatorBehaviour = iota
 	doorOpen
 	moving
-)
-
-type clearRequestVariant int
-
-const (
-	// Assume everyone waiting for the elevator gets on the elevator, even if
-	// they will be traveling in the "wrong" direction for a while
-	clearAll clearRequestVariant = iota
-
-	// Assume that only those that want to travel in the current direction
-	// enter the elevator, and keep waiting outside otherwise
-	clearSameDir
 )
 
 type direction int
@@ -49,16 +30,11 @@ const (
 )
 
 type Elevator struct {
-	floor     int
+	Floor     int
 	direction direction
 	Requests  [NumFloors][NumButtons]bool
-	behaviour elevatorBehaviour
+	Behaviour elevatorBehaviour
 	config    config
-}
-
-type config struct {
-	ClearRequestVariant clearRequestVariant `yaml:"ClearRequestVariant"`
-	DoorOpenDuration    time.Duration       `yaml:"DoorOpenDuration"`
 }
 
 type dirBehaviourPair struct {
@@ -107,9 +83,9 @@ func behaviourToString(behaviour elevatorBehaviour) string {
 
 func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
-	fmt.Printf("  |floor = %-2d          |\n", e.floor)
+	fmt.Printf("  |floor = %-2d          |\n", e.Floor)
 	fmt.Printf("  |dirn  = %-12.12s|\n", dirToString(e.direction))
-	fmt.Printf("  |behav = %-12.12s|\n", behaviourToString(e.behaviour))
+	fmt.Printf("  |behav = %-12.12s|\n", behaviourToString(e.Behaviour))
 
 	fmt.Println("  +--------------------+")
 	fmt.Println("  |  | up  | dn  | cab |")
@@ -131,23 +107,6 @@ func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
 }
 
-func loadConfig() (config, error) {
-	c := config{}
-	file, err := os.Open(ConfigPath)
-	if err != nil {
-		fmt.Println("Error reading file")
-		return c, err
-	}
-	defer file.Close()
-
-	err = yaml.NewDecoder(file).Decode(&c)
-	if err != nil {
-		fmt.Println("Error decoding file")
-		return c, err
-	}
-	return c, nil
-}
-
 func MakeUninitializedelevator() Elevator {
 	config, err := loadConfig()
 	if err != nil {
@@ -155,9 +114,17 @@ func MakeUninitializedelevator() Elevator {
 	}
 
 	return Elevator{
-		floor:     -1,
+		Floor:     -1,
 		direction: stop,
-		behaviour: idle,
+		Behaviour: idle,
 		config:    config,
 	}
+}
+
+func ExtractCabCalls(elevator Elevator) (calls [NumFloors]bool) {
+	for i := range NumFloors {
+		// TODO: Make it general
+		calls[i] = elevator.Requests[i][2]
+	}
+	return
 }
