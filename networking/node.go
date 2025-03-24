@@ -105,6 +105,7 @@ func RunNode(
 			advertiserChan <- nodeInstance.advertiser
 
 			if hasOrder {
+				fmt.Println("Giving order")
 				orderChan <- order
 			}
 			time.Sleep(time.Millisecond * 10)
