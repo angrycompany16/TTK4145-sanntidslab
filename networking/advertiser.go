@@ -43,6 +43,10 @@ func updateAdvertiser(_node node) Advertiser {
 }
 
 func assignRequest(buttonEvent elevio.ButtonEvent, _node node) string {
+	if buttonEvent.Button == elevio.BT_Cab {
+		return nodeID
+	}
+
 	entries := make([]elevalgo.ElevatorEntry, 0)
 
 	entries = append(entries, elevalgo.ElevatorEntry{State: _node.state, Id: nodeID})

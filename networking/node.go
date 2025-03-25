@@ -22,9 +22,16 @@ var (
 // nonexistnet requests on startup???
 // Phantom button presses seem to be fairly rare. They are somehow spawning from
 // the driver
+// How tf??
+// For some reason this bug is very very hard to reproduce
 
 // NOTE: Scary bug: Sometimes it seems that the peers connect and disconnect constantly,
 // but i have no idea how to reproduce the bug???
+
+// A problem: If we have *very* high (90%) packet loss on the request broadcast port,
+// it's essentially impossible for a hall request to be taken, because no one will
+// pick up on the advertiser's requests.
+// I'm not sure if this is something that needs to be considered though...
 
 // NOTE: all fields must be public in structs that are being sent over the network
 
@@ -97,6 +104,10 @@ func RunNode(
 			var lostPeer peer
 			nodeInstance.peers, lostPeer = checkLostPeers(nodeInstance.peers)
 
+			if (lostPeer != peer{}) {
+				peerStates <- ExtractPeerStates(nodeInstance.peers)
+			}
+
 			nodeInstance = redistributeLostHallCalls(lostPeer, nodeInstance)
 
 			order, clearedPendingRequests, hasOrder := takeAckedRequests(nodeInstance)
@@ -112,7 +123,7 @@ func RunNode(
 		}
 	}
 }
-
+åø
 func distributeRequest(buttonEvent elevio.ButtonEvent, assigneeID string, _node node) node {
 	if assigneeID == nodeID {
 		fmt.Println("Self-assigned request:")
