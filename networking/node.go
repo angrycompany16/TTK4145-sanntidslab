@@ -85,7 +85,7 @@ func RunNode(
 			}
 
 			if updatedPeer {
-				peerStates <- ExtractPeerStates(nodeInstance.peers)
+				peerStates <- extractPeerStates(nodeInstance.peers)
 			}
 		case advertiser := <-advertiserChan:
 			nodeInstance.pendingRequestList = takeAdvertisedCalls(advertiser, nodeInstance)
@@ -102,13 +102,13 @@ func RunNode(
 			uptime++
 
 			var lostPeer peer
-			nodeInstance.peers, lostPeer = checkLostPeers(nodeInstance.peers)
+			var hasLostPeer bool
+			nodeInstance.peers, lostPeer, hasLostPeer = checkLostPeers(nodeInstance.peers)
 
-			if (lostPeer != peer{}) {
-				peerStates <- ExtractPeerStates(nodeInstance.peers)
+			if hasLostPeer {
+				peerStates <- extractPeerStates(nodeInstance.peers)
+				nodeInstance = redistributeLostHallCalls(lostPeer, nodeInstance)
 			}
-
-			nodeInstance = redistributeLostHallCalls(lostPeer, nodeInstance)
 
 			order, clearedPendingRequests, hasOrder := takeAckedRequests(nodeInstance)
 			nodeInstance.pendingRequestList = clearedPendingRequests
@@ -132,7 +132,6 @@ func distributeRequest(buttonEvent elevio.ButtonEvent, assigneeID string, _node 
 		_node.pendingRequestList.L[buttonEvent.Floor][buttonEvent.Button].Active = true
 		return _node
 	} else {
-		fmt.Println("Sending request to peer", assigneeID)
 		printRequest(buttonEvent.Floor, buttonEvent.Button)
 		fmt.Println()
 		_node.advertiser.Requests[buttonEvent.Floor][buttonEvent.Button] = newAdvertisedRequest(assigneeID)
@@ -141,13 +140,9 @@ func distributeRequest(buttonEvent elevio.ButtonEvent, assigneeID string, _node 
 }
 
 func redistributeLostHallCalls(lostPeer peer, _node node) node {
-	if (lostPeer == peer{}) {
-		return _node
-	}
-
+	// If we are not the oldest connected peer, we do nothing to avoid duplicating
+	// calls
 	for _, _peer := range _node.peers {
-		// If we are not the oldest connected peer, we do nothing to avoid duplicating
-		// calls
 		if !_peer.connected {
 			continue
 		}
@@ -173,6 +168,7 @@ func redistributeLostHallCalls(lostPeer peer, _node node) node {
 }
 
 func restoreLostCabCalls(heartbeat Heartbeat, _node node) PendingRequestList {
+	// TODO: Maybe check heartbeat.World...uptime instead of Uptime
 	if heartbeat.SenderId == nodeID || heartbeat.Uptime < uptime {
 		return _node.pendingRequestList
 	}

@@ -63,7 +63,7 @@ func assignRequest(buttonEvent elevio.ButtonEvent, _node node) string {
 
 func newAdvertisedRequest(assigneeID string) AdvertisedRequest {
 	uuid := uuid.NewString()
-	fmt.Println("Advertising request with UUID", uuid)
+	fmt.Printf("Advertising request with UUID %s, assignee %s", uuid, assigneeID)
 	return AdvertisedRequest{
 		AssigneeID: assigneeID,
 		UUID:       uuid,

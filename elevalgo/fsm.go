@@ -26,7 +26,7 @@ func InitBetweenFloors() (Elevator, time.Duration) {
 	return elevator, elevator.config.DoorOpenDuration
 }
 
-func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonType) (newElevator Elevator, commands []hardwareEffect) {
+func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonType) (newElevator Elevator, commands []elevatorCommands) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -41,7 +41,7 @@ func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonT
 	switch newElevator.Behaviour {
 	case doorOpen:
 		if newElevator.shouldClearImmediately(buttonFloor, buttonType) {
-			commands = append(commands, hardwareEffect{effect: doorRequest, value: nil})
+			commands = append(commands, elevatorCommands{_type: doorRequest, value: nil})
 		} else {
 			newElevator.Requests[buttonFloor][buttonType] = true
 		}
@@ -55,16 +55,16 @@ func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonT
 		switch pair.behaviour {
 		case doorOpen:
 			// How to encode this in another way...
-			commands = append(commands, hardwareEffect{effect: doorRequest, value: true})
+			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
 		case moving:
-			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
+			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
 		}
 	}
-	return newElevator, commands
+	return
 }
 
-func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []hardwareEffect) {
+func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []elevatorCommands) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -78,21 +78,21 @@ func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []
 	newElevator = e
 	newElevator.Floor = newFloor
 
-	commands = append(commands, hardwareEffect{effect: setFloorIndicator, value: newFloor})
+	commands = append(commands, elevatorCommands{_type: setFloorIndicator, value: newFloor})
 
 	switch newElevator.Behaviour {
 	case moving:
 		if newElevator.shouldStop() {
-			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
-			commands = append(commands, hardwareEffect{effect: doorRequest, value: true})
+			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
+			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
 			newElevator.Behaviour = doorOpen
 		}
 	}
-	return newElevator, commands
+	return
 }
 
-func onDoorClose(e Elevator) (newElevator Elevator, commands []hardwareEffect) {
+func onDoorClose(e Elevator) (newElevator Elevator, commands []elevatorCommands) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -113,12 +113,12 @@ func onDoorClose(e Elevator) (newElevator Elevator, commands []hardwareEffect) {
 
 		switch newElevator.Behaviour {
 		case doorOpen:
-			commands = append(commands, hardwareEffect{effect: doorRequest, value: nil})
+			commands = append(commands, elevatorCommands{_type: doorRequest, value: nil})
 			newElevator = clearAtCurrentFloor(newElevator)
 
 		case moving, idle:
-			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
+			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
 		}
 	}
-	return newElevator, commands
+	return
 }

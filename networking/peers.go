@@ -21,7 +21,7 @@ type peer struct {
 	connected        bool
 }
 
-// Adds a new peer to the list of peers if it doesn't already exist
+// Adds or restores peers from received heartbeat
 func checkNewPeers(heartbeat Heartbeat, peers map[string]peer) (map[string]peer, bool) {
 	newPeerList := listfunctions.DuplicateMap(peers)
 	_, exists := newPeerList[heartbeat.SenderId]
@@ -98,9 +98,9 @@ func updateExistingPeers(heartbeat Heartbeat, peers map[string]peer) (newPeerLis
 	return
 }
 
-func checkLostPeers(peers map[string]peer) (newPeerList map[string]peer, lostPeer peer) {
+func checkLostPeers(peers map[string]peer) (newPeerList map[string]peer, lostPeer peer, hasLostPeer bool) {
 	newPeerList = listfunctions.DuplicateMap(peers)
-	hasLostPeer := false
+	hasLostPeer = false
 
 	for _, peer := range newPeerList {
 		if peer.LastSeen.Add(timeout).Before(time.Now()) && peer.connected {
@@ -111,13 +111,11 @@ func checkLostPeers(peers map[string]peer) (newPeerList map[string]peer, lostPee
 		}
 	}
 
-	// Note: Go doesn't allow you to modify a map while iterating through it, so updating
-	// the peer list has to be done like this
 	if hasLostPeer {
 		lostPeer.BackedUpCabCalls = elevalgo.ExtractCabCalls(lostPeer.State)
 		newPeerList[lostPeer.Id] = lostPeer
 	}
-	return newPeerList, lostPeer
+	return
 }
 
 func countConnectedPeers(peers map[string]peer) (connectedPeers int) {
@@ -129,7 +127,7 @@ func countConnectedPeers(peers map[string]peer) (connectedPeers int) {
 	return connectedPeers
 }
 
-func ExtractPeerStates(peers map[string]peer) (states []elevalgo.Elevator) {
+func extractPeerStates(peers map[string]peer) (states []elevalgo.Elevator) {
 	for _, _peer := range peers {
 		if _peer.connected {
 			states = append(states, _peer.State)

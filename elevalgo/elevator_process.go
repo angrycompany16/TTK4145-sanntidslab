@@ -5,19 +5,20 @@ import (
 	"time"
 )
 
-type driverType int
+type commandType int
 
 const (
-	setMotorDirection driverType = iota
+	setMotorDirection commandType = iota
 	doorRequest
 	setFloorIndicator
 )
 
-type hardwareEffect struct {
-	effect driverType
-	value  interface{}
+type elevatorCommands struct {
+	_type commandType
+	value any
 }
 
+// Runs an elevator that maintains a finite state machine and communicates with hardware
 func RunElevator(
 	floorChan <-chan int,
 	orderChan <-chan elevio.ButtonEvent,
@@ -29,7 +30,7 @@ func RunElevator(
 	resetMotorTimerChan chan<- int,
 	stopMotorTimerChan chan<- int,
 ) {
-	var commands []hardwareEffect
+	var commands []elevatorCommands
 	var newElevator Elevator
 
 	for {
@@ -38,7 +39,6 @@ func RunElevator(
 			newElevator, commands = requestButtonPressed(elevator, order.Floor, order.Button)
 			elevator = newElevator
 
-			// Twice, one for lights and one for network
 			nodeElevatorStateChan <- newElevator
 			lightsElevatorStateChan <- newElevator
 		case floor := <-floorChan:
@@ -63,13 +63,13 @@ func RunElevator(
 }
 
 func executeCommands(
-	commands []hardwareEffect,
+	commands []elevatorCommands,
 	doorRequestChan chan<- int,
 	resetMotorTimerChan chan<- int,
 	stopMotorTimerChan chan<- int,
 ) {
 	for _, command := range commands {
-		switch command.effect {
+		switch command._type {
 		case setMotorDirection:
 			direction := command.value.(elevio.MotorDirection)
 			elevio.SetMotorDirection(direction)

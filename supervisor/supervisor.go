@@ -39,8 +39,7 @@ func main() {
 	}
 }
 
-func tryRevive(msg int, reviveFlag bool) (reviving bool) {
-
+func tryRevive(msg int, reviveFlag bool) bool {
 	if msg != 0 && !reviveFlag {
 		fmt.Printf("tried to revive, recieved %d, %t \n", msg, reviveFlag)
 		reviveElevator()
@@ -56,7 +55,6 @@ func tryRevive(msg int, reviveFlag bool) (reviving bool) {
 }
 
 func processIsAlive(flag string, aliveChan chan<- int) {
-
 	for {
 		err := exec.Command("pgrep", "-f", flag).Run()
 
@@ -74,9 +72,6 @@ func processIsAlive(flag string, aliveChan chan<- int) {
 
 func reviveElevator() {
 	fmt.Println("Running run.sh")
-
-	// ;exec bash makes it so that the terminal persists in spite of the process its running
-	// being terminated, so if we do not want this simply remove the end part.
 
 	exec_bash := ";"
 	if verbose {
