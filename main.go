@@ -3,78 +3,144 @@ package main
 import (
 	"flag"
 	"fmt"
-	elevalgo "sanntidslab/elev_al_go"
-	"sanntidslab/elev_al_go/timer"
-	"sanntidslab/peer"
+	"sanntidslab/door"
+	"sanntidslab/elevalgo"
+	"sanntidslab/elevio"
+	"sanntidslab/lights"
+	"sanntidslab/networking"
+	"sanntidslab/timer"
 	"strconv"
 	"time"
-
-	"github.com/angrycompany16/Network-go/network/transfer"
-	"github.com/angrycompany16/driver-go/elevio"
 )
 
 const (
-	requestBufferSize    = 1
-	defaultElevatorPort  = 15657 /* I think? */
-	stateBroadcastPort   = 36251 // Akkordrekke
-	requestBroadCastPort = 12345
+	defaultElevatorPort = 15657
+	obstructionTimeout  = time.Second * 10
+	motorTimeout        = time.Second * 10
 )
 
-// TODO: *Read* code complete checklist properly and at least try to make the code
-// quality good
+// TODO: Final todo list before FAT:
+// - Convert door into its own process ✓
+// - Fully implement obstruction switch and motor blockage timers ✓
+// - Change elevator state sending from continuous to diff ✓
+// - Change peer list sending from continuous to diff ✓
+// - Implement virtual state for pending requests ✓
+// - Fix the request assigner ✓
+// - Do a *lot* more testing with packet loss, both working and not working
+// - Make the hardwareCommands solution cleaner [?]
+// - Gather everything into one repo ✓
+// - Review the structure of elevalgo ✓
+// - Read the project spec completely, and verify that everything works
+// - Do test FAT
 
-// A note on convention before i forget:
-// - Orders: Will be executed by elevator, will cause lights to activate
-// - Requests: Abstract orders that haven't yet been confirmed/acknowledged
+// A problem with packet loss:
+// -----------------------------
+// If there is high packet loss and an elevator disconnects, the other two elevators
+// may take requests which haven't been fully acked. This can happen if elevator 1
+// takes a request while elevator 3 is "disconnected", elevator 1 then detects that
+// only elevator 2 needs to ack, which happens, and then elevator 1 takes the request
+// with only an ack from elevator 2. If elevator 2 then dies, the request has not been
+// backed up
+// One reason why this may potentially not be such a huge problem is that
+// each elevator broadcasts its state either way, so there is a large chance
+// that elevator 3 will pick up that elevator 1 is taking the request anyways, and then
+// if elevator 1 dies, elevator 3 can take over / back up the request
 
-// TODO: Consider: Should obstruction be its own process?
-
-// TODO: Implement crashing in case of obstruction or motor failure
-
+// But in general packet loss will ravage our elevator system
+// :DD
 func main() {
-	// ---- Flags
+	// ---- Flags ----
 	var port int
+	var id string
 	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
-	flag.StringVar(&peer.GlobalID, "id", "", "Network node id")
+	flag.StringVar(&id, "id", "", "Network node id")
 	fmt.Println("Started!")
 
 	flag.Parse()
 
-	// ---- Initialize elevator
+	// // ---- Initialize elevator ----
 	elevio.Init("localhost:"+strconv.Itoa(port), elevalgo.NumFloors)
 	elevalgo.InitFsm()
-	elevalgo.InitBetweenFloors()
+	initElevator, doorOpenDuration := elevalgo.InitBetweenFloors()
 
-	buttonEventChan := make(chan elevio.ButtonEvent)
+	// ---- Initialize hardware communication ----
+	buttonEventChan := make(chan elevio.ButtonEvent, 1)
 	floorChan := make(chan int)
 	obstructionChan := make(chan bool)
 
-	go elevio.PollButtons(buttonEventChan) // "Sent" to node for further action
+	go elevio.PollButtons(buttonEventChan)
+	go elevio.PollFloorSensor(floorChan)
+	go elevio.PollObstructionSwitch(obstructionChan)
 
-	go elevio.PollFloorSensor(floorChan)             // "Sent" to elevalgo for declaring new state
-	go elevio.PollObstructionSwitch(obstructionChan) // "Sent" to elevalgo for declaring new state
+	obstructionInit := <-obstructionChan
 
-	// ---- Initialize timer
-	timer.SetTimeout(elevalgo.GetTimeout())
-	timer.StartTimer()
+	// ---- Initialize timers ----
+	// Door timer
+	resetDoorTimerChan := make(chan int)
+	stopDoorTimerChan := make(chan int)
+	doorTimeoutChan := make(chan int)
+	go timer.RunTimer(resetDoorTimerChan, stopDoorTimerChan, doorTimeoutChan, doorOpenDuration, false, "Door timer")
 
-	// ---- Initialize networking
+	// Obstruction timer
+	resetObstructionTimerChan := make(chan int)
+	stopObstructionTimerChan := make(chan int)
+	obstructionTimeoutChan := make(chan int)
+	go timer.RunTimer(resetObstructionTimerChan, stopObstructionTimerChan, obstructionTimeoutChan, obstructionTimeout, true, "Obstruction timer")
+
+	// Motor timer
+	resetMotorTimerChan := make(chan int)
+	stopMotorTimerChan := make(chan int)
+	motorTimeoutChan := make(chan int)
+	go timer.RunTimer(resetMotorTimerChan, stopMotorTimerChan, motorTimeoutChan, motorTimeout, true, "Motor timer")
+
+	// ---- Networking node communication ----
+	// TODO: Try unbuffering some of these channels and see what happens
 	orderChan := make(chan elevio.ButtonEvent, 1)
-	peerRequestChan := make(chan peer.Advertiser) // Node <- Network
-	heartbeatChan := make(chan peer.Heartbeat)
-	elevatorStateChan := make(chan elevalgo.Elevator)
+	nodeElevatorStateChan := make(chan elevalgo.Elevator, 1)
+	peerStateChan := make(chan []elevalgo.Elevator, 1)
 
-	go transfer.BroadcastSender(stateBroadcastPort, heartbeatChan)
-	go transfer.BroadcastReceiver(stateBroadcastPort, heartbeatChan)
+	// ---- Door communication ----
+	doorRequestChan := make(chan int)
+	doorCloseChan := make(chan int)
 
-	go transfer.BroadcastSender(requestBroadCastPort, peerRequestChan)
-	go transfer.BroadcastReceiver(requestBroadCastPort, peerRequestChan)
+	// ---- Lights communication
+	lightsElevatorStateChan := make(chan elevalgo.Elevator, 1)
 
-	go peer.NodeProcess(peerRequestChan, heartbeatChan, buttonEventChan, elevatorStateChan, orderChan, elevalgo.GetState())
+	// ---- Spawn core threads: networking, elevator, door and lights ----
+	go networking.RunNode(
+		buttonEventChan,
+		nodeElevatorStateChan,
+		orderChan,
+		peerStateChan,
+		initElevator,
+		id,
+	)
 
-	go elevalgo.ElevatorProcess(floorChan, obstructionChan, orderChan, elevatorStateChan)
+	go elevalgo.RunElevator(
+		floorChan,
+		orderChan,
+		doorCloseChan,
+		doorRequestChan,
+		lightsElevatorStateChan,
+		nodeElevatorStateChan,
+		resetMotorTimerChan,
+		stopMotorTimerChan,
+	)
+
+	go door.RunDoor(
+		obstructionChan,
+		doorTimeoutChan,
+		doorRequestChan,
+		doorCloseChan,
+		resetDoorTimerChan,
+		resetObstructionTimerChan,
+		stopObstructionTimerChan,
+		obstructionInit,
+	)
+
+	go lights.RunLights(lightsElevatorStateChan, peerStateChan)
+
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Second)
 	}
-
 }
