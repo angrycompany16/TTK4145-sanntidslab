@@ -123,7 +123,7 @@ func RunNode(
 		}
 	}
 }
-åø
+
 func distributeRequest(buttonEvent elevio.ButtonEvent, assigneeID string, _node node) node {
 	if assigneeID == nodeID {
 		fmt.Println("Self-assigned request:")
