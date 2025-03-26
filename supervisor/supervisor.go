@@ -10,18 +10,24 @@ import (
 
 const (
 	elevatorFlag        string        = "elevator_go"
-	timeout             time.Duration = 5000 * time.Millisecond
+	timeout             time.Duration = 2000 * time.Millisecond
 	defaultElevatorPort               = 15657
 )
 
 var (
-	pwd  string
-	id   string
-	port int
+	pwd     string
+	id      string
+	port    int
+	verbose bool
 )
 
 func main() {
-	pwd = getArgs()
+	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
+	flag.StringVar(&id, "id", "", "Network node id")
+	flag.BoolVar(&verbose, "verbose", false, "Run with exec bash or not (debugging)")
+	flag.Parse()
+
+	pwd, _ = os.Getwd()
 
 	reviving := false
 	aliveChan := make(chan int)
@@ -31,16 +37,6 @@ func main() {
 	for msg := range aliveChan {
 		reviving = tryRevive(msg, reviving)
 	}
-}
-
-func getArgs() (pwd string) {
-
-	flag.IntVar(&port, "port", defaultElevatorPort, "Elevator server port")
-	flag.StringVar(&id, "id", "", "Network node id")
-	flag.Parse()
-
-	pwd, _ = os.Getwd()
-	return pwd
 }
 
 func tryRevive(msg int, reviveFlag bool) (reviving bool) {
@@ -74,7 +70,6 @@ func processIsAlive(flag string, aliveChan chan<- int) {
 
 		time.Sleep(timeout)
 	}
-
 }
 
 func reviveElevator() {
@@ -83,12 +78,17 @@ func reviveElevator() {
 	// ;exec bash makes it so that the terminal persists in spite of the process its running
 	// being terminated, so if we do not want this simply remove the end part.
 
+	exec_bash := ";"
+	if verbose {
+		exec_bash = "--verbose; exec bash"
+	}
+
 	if port == defaultElevatorPort {
-		runFile := fmt.Sprintf("cd %s && ./run.sh %s; exec bash", pwd, id)
+		runFile := fmt.Sprintf("cd %s && ./run.sh --id %s %s", pwd, id, exec_bash)
 		exec.Command("gnome-terminal", "--", "bash", "-c", runFile).Run()
 		return
 	}
 
-	runFile := fmt.Sprintf("cd %s && ./run.sh %s %d; exec bash", pwd, id, port)
+	runFile := fmt.Sprintf("cd %s && ./run.sh --id %s --port %d %s", pwd, id, port, exec_bash)
 	exec.Command("gnome-terminal", "--", "bash", "-c", runFile).Run()
 }

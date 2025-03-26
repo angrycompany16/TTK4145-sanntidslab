@@ -73,7 +73,7 @@ func executeCommands(
 		case setMotorDirection:
 			direction := command.value.(elevio.MotorDirection)
 			elevio.SetMotorDirection(direction)
-			if direction == elevio.MD_Up || direction == elevio.MD_Down {
+			if direction != elevio.MD_Stop {
 				resetMotorTimerChan <- 1
 			} else {
 				stopMotorTimerChan <- 1
