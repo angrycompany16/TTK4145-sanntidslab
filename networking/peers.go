@@ -11,23 +11,6 @@ var (
 	timeout = time.Millisecond * 500
 )
 
-// Q: Why does the cab call backup only fail in the case of a restored-from-worldview
-// peer?
-// A: It doesn't.
-// It happens to work if there are two backups, as i guess then the life signals that
-// come in dominate the ones being sent out, but that's not a solution to the problem
-
-// idea: backed up request list
-// When a node disconnects, set the backed up request list via the last known peer state
-// When a node reconnects, we check the backed up request list. If the node tries
-// to overwrite a backed up request we disallow this until we see ourselves ack the
-// node's request to take the lost cab calls
-// That might just work
-
-// IT'S
-// FUCKIN
-// APPROVED
-
 type peer struct {
 	State            elevalgo.Elevator
 	VirtualState     elevalgo.Elevator
@@ -104,7 +87,6 @@ func updateExistingPeers(heartbeat Heartbeat, peers map[string]peer) (newPeerLis
 		for j := range elevalgo.NumButtons {
 			updatedPeer.VirtualState.Requests[i][j] = heartbeat.PendingRequests.L[i][j].Active
 		}
-		// TODO: Generalize
 		// If the peer is actively looking for backup, we no longer need to back it up
 		// This kind of makes no sense but trust me it works hopefully
 		if heartbeat.PendingRequests.L[i][2].Active {

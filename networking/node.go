@@ -180,35 +180,14 @@ func restoreLostCabCalls(heartbeat Heartbeat, _node node) PendingRequestList {
 	fmt.Println("Restoring cab calls")
 
 	for i := range elevalgo.NumFloors {
-		// TODO: Generalize
 		if heartbeat.WorldView[nodeID].BackedUpCabCalls[i] {
 			_node.pendingRequestList.L[i][2].Active = true
 
 			fmt.Println("Received lost cab call from", heartbeat.SenderId)
 			printRequest(i, elevio.BT_Cab)
-		} /*else if heartbeat.WorldView[nodeID].VirtualState.Requests[i][elevalgo.NumButtons-j-1] {
-			_node.pendingRequestList.L[i][elevalgo.NumButtons-j-1].Active = true
-
-			fmt.Println("Received lost cab call from", heartbeat.SenderId)
-			printRequest(i, elevio.BT_Cab)
-		}*/
+		}
 	}
 
-	// for i := range elevalgo.NumFloors {
-	// 	for j := range elevalgo.NumCabButtons {
-	// 		if heartbeat.WorldView[nodeID].State.Requests[i][elevalgo.NumButtons-j-1] {
-	// 			_node.pendingRequestList.L[i][elevalgo.NumButtons-j-1].Active = true
-
-	// 			fmt.Println("Received lost cab call from", heartbeat.SenderId)
-	// 			printRequest(i, elevio.BT_Cab)
-	// 		} /*else if heartbeat.WorldView[nodeID].VirtualState.Requests[i][elevalgo.NumButtons-j-1] {
-	// 			_node.pendingRequestList.L[i][elevalgo.NumButtons-j-1].Active = true
-
-	// 			fmt.Println("Received lost cab call from", heartbeat.SenderId)
-	// 			printRequest(i, elevio.BT_Cab)
-	// 		}*/
-	// 	}
-	// }
 	return _node.pendingRequestList
 }
 

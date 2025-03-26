@@ -123,7 +123,6 @@ func MakeUninitializedelevator() Elevator {
 
 func ExtractCabCalls(elevator Elevator) (calls [NumFloors]bool) {
 	for i := range NumFloors {
-		// TODO: Make it general
 		calls[i] = elevator.Requests[i][2]
 	}
 	return

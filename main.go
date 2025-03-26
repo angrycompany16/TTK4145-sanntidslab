@@ -25,7 +25,7 @@ const (
 // - Change elevator state sending from continuous to diff ✓
 // - Change peer list sending from continuous to diff ✓
 // - Implement virtual state for pending requests ✓
-// - Fix the request assigner
+// - Fix the request assigner ✓
 // - Do a *lot* more testing with packet loss, both working and not working
 // - Make the hardwareCommands solution cleaner [?]
 // - Gather everything into one repo ✓

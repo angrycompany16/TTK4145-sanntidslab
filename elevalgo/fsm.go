@@ -86,7 +86,6 @@ func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []
 			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
 			commands = append(commands, hardwareEffect{effect: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
-			// commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
 			newElevator.Behaviour = doorOpen
 		}
 	}
@@ -114,26 +113,12 @@ func onDoorClose(e Elevator) (newElevator Elevator, commands []hardwareEffect) {
 
 		switch newElevator.Behaviour {
 		case doorOpen:
-			// commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
 			commands = append(commands, hardwareEffect{effect: doorRequest, value: nil})
 			newElevator = clearAtCurrentFloor(newElevator)
 
 		case moving, idle:
-			// commands = append(commands, hardwareEffect{effect: setDoorOpenLamp, value: false})
 			commands = append(commands, hardwareEffect{effect: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
 		}
 	}
 	return newElevator, commands
 }
-
-// TODO: Remove/refactor
-// func doorObstructed(e Elevator, isObstructed bool) (commands []hardwareEffect) {
-// 	if !isObstructed {
-// 		return commands
-// 	}
-
-// 	if e.behaviour == doorOpen {
-// 		commands = append(commands, hardwareEffect{effect: startTimer, value: nil})
-// 	}
-// 	return commands
-// }
