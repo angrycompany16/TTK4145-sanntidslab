@@ -80,6 +80,7 @@ func executeCommands(
 			}
 		case setFloorIndicator:
 			elevio.SetFloorIndicator(command.value.(int))
+			stopMotorTimerChan <- 1
 		case doorRequest:
 			doorRequestChan <- 1
 		}

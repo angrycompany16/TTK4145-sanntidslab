@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+var (
+	// Eh lets make it thread safe cause why not
+	disconnected = false // For debugging ONLY
+)
+
 const (
 	stateBroadcastPort   = 36251 // Akkordrekke
 	requestBroadCastPort = 12345 // Just a random number
@@ -51,6 +56,7 @@ func RunNode(
 	elevatorStateChan <-chan elevalgo.Elevator,
 	orderChan chan<- elevio.ButtonEvent,
 	peerStates chan<- []elevalgo.Elevator,
+	disconnectChan <-chan int,
 
 	initState elevalgo.Elevator,
 	id string,
@@ -71,7 +77,13 @@ func RunNode(
 
 	for {
 		select {
+		case <-disconnectChan:
+			fmt.Println("Setting disconnected to:", !disconnected)
+			disconnected = !disconnected
 		case heartbeat := <-heartbeatRx:
+			if disconnected {
+				continue
+			}
 			var addedPeer bool
 			nodeInstance.peers, addedPeer = checkNewPeers(heartbeat, nodeInstance.peers)
 
@@ -88,7 +100,9 @@ func RunNode(
 				peerStates <- extractPeerStates(nodeInstance.peers)
 			}
 		case advertiser := <-advertiserChan:
-			nodeInstance.pendingRequestList = takeAdvertisedCalls(advertiser, nodeInstance)
+			if !disconnected {
+				nodeInstance.pendingRequestList = takeAdvertisedCalls(advertiser, nodeInstance)
+			}
 		case buttonEvent := <-buttonEventChan:
 			fmt.Println("Button event:", buttonEvent)
 			assigneeID := assignRequest(buttonEvent, nodeInstance)
@@ -98,7 +112,9 @@ func RunNode(
 			nodeInstance.state = elevatorState
 		default:
 			heartbeat := newHeartbeat(nodeInstance)
-			heartbeatTx <- heartbeat
+			if !disconnected {
+				heartbeatTx <- heartbeat
+			}
 			uptime++
 
 			var lostPeer peer
@@ -113,7 +129,9 @@ func RunNode(
 			order, clearedPendingRequests, hasOrder := takeAckedRequests(nodeInstance)
 			nodeInstance.pendingRequestList = clearedPendingRequests
 
-			advertiserChan <- nodeInstance.advertiser
+			if !disconnected {
+				advertiserChan <- nodeInstance.advertiser
+			}
 
 			if hasOrder {
 				fmt.Println("Giving order")

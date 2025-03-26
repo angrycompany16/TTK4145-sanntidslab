@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"sanntidslab/disconnector"
 	"sanntidslab/door"
 	"sanntidslab/elevalgo"
 	"sanntidslab/elevio"
@@ -18,6 +19,10 @@ const (
 	obstructionTimeout  = time.Second * 10
 	motorTimeout        = time.Second * 10
 )
+
+// Problems arising during FAT and other testing
+// - How to test disconnect :sad
+//   we make at home version
 
 // TODO: Final todo list before FAT:
 // - Convert door into its own process ✓
@@ -106,12 +111,16 @@ func main() {
 	// ---- Lights communication
 	lightsElevatorStateChan := make(chan elevalgo.Elevator, 1)
 
+	// ---- Disconnect ----
+	disconnectChan := make(chan int, 1)
+
 	// ---- Spawn core threads: networking, elevator, door and lights ----
 	go networking.RunNode(
 		buttonEventChan,
 		nodeElevatorStateChan,
 		orderChan,
 		peerStateChan,
+		disconnectChan,
 		initElevator,
 		id,
 	)
@@ -139,6 +148,8 @@ func main() {
 	)
 
 	go lights.RunLights(lightsElevatorStateChan, peerStateChan)
+
+	go disconnector.RunDisconnector(disconnectChan)
 
 	for {
 		time.Sleep(time.Second)
