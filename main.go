@@ -76,16 +76,12 @@ func main() {
 	// ---- Lights communication
 	lightsElevatorStateChan := make(chan elevalgo.Elevator, 1)
 
-	// ---- Disconnect ----
-	disconnectChan := make(chan int, 1)
-
 	// ---- Spawn core threads: networking, elevator, door and lights ----
 	go networking.RunNode(
 		buttonEventChan,
 		nodeElevatorStateChan,
 		orderChan,
 		peerStateChan,
-		disconnectChan,
 		initElevator,
 		id,
 	)

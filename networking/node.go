@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-var (
-	disconnected = false // For debugging ONLY
-)
-
 const (
 	stateBroadcastPort   = 36251 // Akkordrekke
 	requestBroadCastPort = 12345 // Just a random number
@@ -38,7 +34,6 @@ func RunNode(
 	elevatorStateChan <-chan elevalgo.Elevator,
 	orderChan chan<- elevio.ButtonEvent,
 	peerStates chan<- []elevalgo.Elevator,
-	disconnectChan <-chan int,
 
 	initState elevalgo.Elevator,
 	id string,
@@ -59,13 +54,8 @@ func RunNode(
 
 	for {
 		select {
-		case <-disconnectChan:
-			fmt.Println("Setting disconnected to:", !disconnected)
-			disconnected = !disconnected
+
 		case heartbeat := <-heartbeatRx:
-			if disconnected {
-				continue
-			}
 			var addedPeer bool
 			nodeInstance.peers, addedPeer = checkNewPeers(heartbeat, nodeInstance.peers)
 
@@ -82,9 +72,8 @@ func RunNode(
 				peerStates <- extractPeerStates(nodeInstance.peers)
 			}
 		case advertiser := <-advertiserChan:
-			if !disconnected {
-				nodeInstance.pendingRequestList = takeAdvertisedCalls(advertiser, nodeInstance)
-			}
+			nodeInstance.pendingRequestList = takeAdvertisedCalls(advertiser, nodeInstance)
+
 		case buttonEvent := <-buttonEventChan:
 			fmt.Println("Button event:", buttonEvent)
 			assigneeID := assignRequest(buttonEvent, nodeInstance)
@@ -94,9 +83,7 @@ func RunNode(
 			nodeInstance.state = elevatorState
 		default:
 			heartbeat := newHeartbeat(nodeInstance)
-			if !disconnected {
-				heartbeatTx <- heartbeat
-			}
+			heartbeatTx <- heartbeat
 			uptime++
 
 			var lostPeer peer
@@ -111,9 +98,7 @@ func RunNode(
 			order, clearedPendingRequests, hasOrder := takeAckedRequests(nodeInstance)
 			nodeInstance.pendingRequestList = clearedPendingRequests
 
-			if !disconnected {
-				advertiserChan <- nodeInstance.advertiser
-			}
+			advertiserChan <- nodeInstance.advertiser
 
 			if hasOrder {
 				fmt.Println("Giving order")
@@ -163,7 +148,6 @@ func redistributeLostHallCalls(lostPeer peer, _node node) node {
 			}
 		}
 	}
-
 	return _node
 }
 
@@ -182,7 +166,6 @@ func restoreLostCabCalls(heartbeat Heartbeat, _node node) PendingRequestList {
 			printRequest(i, elevio.BT_Cab)
 		}
 	}
-
 	return _node.pendingRequestList
 }
 
