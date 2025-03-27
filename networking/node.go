@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	// Eh lets make it thread safe cause why not
 	disconnected = false // For debugging ONLY
 )
 
@@ -22,23 +21,6 @@ var (
 	nodeID string
 	uptime int64
 )
-
-// NOTE: Another scary bug: Sometimes the system randomly spawns in a lot of
-// nonexistnet requests on startup???
-// Phantom button presses seem to be fairly rare. They are somehow spawning from
-// the driver
-// How tf??
-// For some reason this bug is very very hard to reproduce
-
-// NOTE: Scary bug: Sometimes it seems that the peers connect and disconnect constantly,
-// but i have no idea how to reproduce the bug???
-
-// A problem: If we have *very* high (90%) packet loss on the request broadcast port,
-// it's essentially impossible for a hall request to be taken, because no one will
-// pick up on the advertiser's requests.
-// I'm not sure if this is something that needs to be considered though...
-
-// NOTE: all fields must be public in structs that are being sent over the network
 
 // Contains the information needed to distribute, receive and ack messages over the
 // network
@@ -186,7 +168,6 @@ func redistributeLostHallCalls(lostPeer peer, _node node) node {
 }
 
 func restoreLostCabCalls(heartbeat Heartbeat, _node node) PendingRequestList {
-	// TODO: Maybe check heartbeat.World...uptime instead of Uptime
 	if heartbeat.SenderId == nodeID || heartbeat.Uptime < uptime {
 		return _node.pendingRequestList
 	}

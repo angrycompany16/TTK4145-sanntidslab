@@ -87,8 +87,8 @@ func updateExistingPeers(heartbeat Heartbeat, peers map[string]peer) (newPeerLis
 		for j := range elevalgo.NumButtons {
 			updatedPeer.VirtualState.Requests[i][j] = heartbeat.PendingRequests.L[i][j].Active
 		}
-		// If the peer is actively looking for backup, we no longer need to back it up
-		// This kind of makes no sense but trust me it works hopefully
+		// If the peer is actively looking for backup, we no longer need to back it up in the BackedUpCabCalls
+		// Instead its backed up in the peer itself
 		if heartbeat.PendingRequests.L[i][2].Active {
 			updatedPeer.BackedUpCabCalls[i] = false
 		}

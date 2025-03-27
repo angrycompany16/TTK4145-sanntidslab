@@ -54,7 +54,6 @@ func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonT
 		newElevator.Behaviour = pair.behaviour
 		switch pair.behaviour {
 		case doorOpen:
-			// How to encode this in another way...
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
 		case moving:

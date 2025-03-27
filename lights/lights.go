@@ -9,10 +9,6 @@ type LightsState struct {
 	Lights [elevalgo.NumFloors][elevalgo.NumButtons]bool
 }
 
-// Problem:
-// Lights aren't disabled when redistributed backup calls are taken
-// This likely happens because
-
 // Sets lights based on inputs from elevator and peers
 func RunLights(
 	elevatorStateChan <-chan elevalgo.Elevator,

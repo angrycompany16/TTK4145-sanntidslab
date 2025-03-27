@@ -27,7 +27,6 @@ func updateAdvertiser(_node node) Advertiser {
 				continue
 			}
 
-			// TODO: Somehow shorten this down a bit maybe
 			if _node.peers[advertisedRequest.AssigneeID].State.Requests[i][j] {
 				fmt.Println("Stop advertising")
 				_node.advertiser.Requests[i][j].UUID = ""

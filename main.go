@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"sanntidslab/disconnector"
 	"sanntidslab/door"
 	"sanntidslab/elevalgo"
 	"sanntidslab/elevio"
@@ -20,39 +19,6 @@ const (
 	motorTimeout        = time.Second * 10
 )
 
-// Problems arising during FAT and other testing
-// - How to test disconnect :sad
-//   we make at home version
-
-// TODO: Final todo list before FAT:
-// - Convert door into its own process ✓
-// - Fully implement obstruction switch and motor blockage timers ✓
-// - Change elevator state sending from continuous to diff ✓
-// - Change peer list sending from continuous to diff ✓
-// - Implement virtual state for pending requests ✓
-// - Fix the request assigner ✓
-// - Do a *lot* more testing with packet loss, both working and not working
-// - Make the hardwareCommands solution cleaner [?]
-// - Gather everything into one repo ✓
-// - Review the structure of elevalgo ✓
-// - Read the project spec completely, and verify that everything works
-// - Do test FAT
-
-// A problem with packet loss:
-// -----------------------------
-// If there is high packet loss and an elevator disconnects, the other two elevators
-// may take requests which haven't been fully acked. This can happen if elevator 1
-// takes a request while elevator 3 is "disconnected", elevator 1 then detects that
-// only elevator 2 needs to ack, which happens, and then elevator 1 takes the request
-// with only an ack from elevator 2. If elevator 2 then dies, the request has not been
-// backed up
-// One reason why this may potentially not be such a huge problem is that
-// each elevator broadcasts its state either way, so there is a large chance
-// that elevator 3 will pick up that elevator 1 is taking the request anyways, and then
-// if elevator 1 dies, elevator 3 can take over / back up the request
-
-// But in general packet loss will ravage our elevator system
-// :DD
 func main() {
 	// ---- Flags ----
 	var port int
@@ -99,7 +65,6 @@ func main() {
 	go timer.RunTimer(resetMotorTimerChan, stopMotorTimerChan, motorTimeoutChan, motorTimeout, true, "Motor timer")
 
 	// ---- Networking node communication ----
-	// TODO: Try unbuffering some of these channels and see what happens
 	orderChan := make(chan elevio.ButtonEvent, 1)
 	nodeElevatorStateChan := make(chan elevalgo.Elevator, 1)
 	peerStateChan := make(chan []elevalgo.Elevator, 1)
@@ -148,8 +113,6 @@ func main() {
 	)
 
 	go lights.RunLights(lightsElevatorStateChan, peerStateChan)
-
-	go disconnector.RunDisconnector(disconnectChan)
 
 	for {
 		time.Sleep(time.Second)

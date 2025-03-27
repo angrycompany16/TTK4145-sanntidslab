@@ -57,7 +57,7 @@ func (e *Elevator) chooseDirection() dirBehaviourPair {
 		} else {
 			return dirBehaviourPair{stop, idle}
 		}
-	case stop: // there should only be one request in the Stop case. Checking up or down first is arbitrary.
+	case stop:
 		if e.requestsHere() {
 			return dirBehaviourPair{stop, doorOpen}
 		} else if e.requestsAbove() {
