@@ -3,7 +3,7 @@ package networking
 import (
 	"fmt"
 	elevalgo "sanntidslab/elevalgo"
-	"sanntidslab/listfunctions"
+	"sanntidslab/mapfunctions"
 	"time"
 )
 
@@ -12,18 +12,19 @@ var (
 )
 
 type peer struct {
-	State            elevalgo.Elevator
-	VirtualState     elevalgo.Elevator
+	Id           string
+	Uptime       int64
+	LastSeen     time.Time
+	connected    bool
+	State        elevalgo.Elevator
+	VirtualState elevalgo.Elevator // Contains "desired state" which is only used
+	// when acking requests
 	BackedUpCabCalls [elevalgo.NumFloors]bool
-	Id               string
-	LastSeen         time.Time
-	Uptime           int64
-	connected        bool
 }
 
 // Adds or restores peers from received heartbeat
 func checkNewPeers(heartbeat Heartbeat, peers map[string]peer) (map[string]peer, bool) {
-	newPeerList := listfunctions.DuplicateMap(peers)
+	newPeerList := mapfunctions.DuplicateMap(peers)
 	_, exists := newPeerList[heartbeat.SenderId]
 
 	if nodeID == heartbeat.SenderId || exists {
@@ -56,7 +57,7 @@ func checkNewPeers(heartbeat Heartbeat, peers map[string]peer) (map[string]peer,
 
 // Updates peer list with info from heartbeat
 func updateExistingPeers(heartbeat Heartbeat, peers map[string]peer) (newPeerList map[string]peer, updated bool) {
-	newPeerList = listfunctions.DuplicateMap(peers)
+	newPeerList = mapfunctions.DuplicateMap(peers)
 	updated = false
 
 	if nodeID == heartbeat.SenderId {
@@ -99,7 +100,7 @@ func updateExistingPeers(heartbeat Heartbeat, peers map[string]peer) (newPeerLis
 }
 
 func checkLostPeers(peers map[string]peer) (newPeerList map[string]peer, lostPeer peer, hasLostPeer bool) {
-	newPeerList = listfunctions.DuplicateMap(peers)
+	newPeerList = mapfunctions.DuplicateMap(peers)
 	hasLostPeer = false
 
 	for _, peer := range newPeerList {

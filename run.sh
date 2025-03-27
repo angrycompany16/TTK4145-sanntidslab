@@ -1,23 +1,28 @@
-#!/bin/bash
+# Automatically builds and runs the elevator program, elevator server (or simulator) and
+# supervisor based on the given flags. Accepts an id, port, and verbose (whether 
+# terminals should close automatically or not)
+# Note that running without a port argument will start the elevatorserver rather than
+# the simulator.
 
+#!/bin/bash
 vars=$(getopt -o i:p:v --long id:,port:,verbose -- "$@")
 eval set -- "$vars"
 
-# Flags: i, p, v
 id=''
 port=''
 exec_bash=''
 verbose=''
 
-go build -o bin/supervisor_go supervisor/supervisor.go
-go build -o bin/elevator_go main.go
+supervisor_exe='supervisor_go'
+elevator_exe='elevator_go'
 
-bash -c 'pkill supervisor_go'
-bash -c 'pkill elevator_go'
+go build -o bin/$supervisor_exe supervisor/supervisor.go
+go build -o bin/$elevator_exe main.go
+
+bash -c "pkill $supervisor_exe"
+bash -c "pkill $elevator_exe"
 bash -c 'pkill elevatorserver'
 bash -c 'pkill -f SimElevatorServer'
-
-# the command exec bash makes the process and terminal independent. If we want terminals to close when killed remove it.
 
 for opt; do
     case "$opt" in
@@ -28,16 +33,13 @@ for opt; do
 done
 
 if [ -z "$port" ]; then
-    echo "Running without port"
     gnome-terminal -- bash -c "elevatorserver; $exec_bash"
-    gnome-terminal -- bash -c "./bin/elevator_go -id $id; $exec_bash"
-    gnome-terminal -- bash -c "./bin/supervisor_go -id $id -verbose $verbose; $exec_bash"
+    gnome-terminal -- bash -c "./bin/$elevator_exe -id $id; $exec_bash"
+    gnome-terminal -- bash -c "./bin/$supervisor_exe -id $id -verbose $verbose; $exec_bash"
 else
-    echo "Running with port"
-    gnome-terminal -- bash -c "./bin/SimElevatorServer --port $port; $exec_bash"
-    gnome-terminal -- bash -c "./bin/elevator_go -id $id -port $port; $exec_bash"
-    gnome-terminal -- bash -c "./bin/supervisor_go -id $id -port $port -verbose $verbose; $exec_bash"
+    gnome-terminal -- bash -c "./simulator/SimElevatorServer --port $port; $exec_bash"
+    gnome-terminal -- bash -c "./bin/$elevator_exe -id $id -port $port; $exec_bash"
+    gnome-terminal -- bash -c "./bin/$supervisor_exe -id $id -port $port -verbose $verbose; $exec_bash"
 fi
-
 
 exit 0

@@ -5,24 +5,27 @@ import (
 	"sanntidslab/elevio"
 )
 
-type DoorState int
+type state int
 
 const (
-	Open DoorState = iota
-	Closed
-	Stuck
+	open state = iota
+	closed
+	stuck
 )
 
-type doorCommand int
+type command int
 
 const (
-	openDoor doorCommand = iota
+	openDoor command = iota
 	closeDoor
 	resetTimer
 	resetObstructionTimer
 	stopObstructionTimer
 )
 
+// Runs a simple state machine for the elevator door that accepts requests and handles
+// obstruction events. It also manages a timer that panics if the door remains
+// obstructed. Note that the obstruction panic timer will not start until the door opens.
 func RunDoor(
 	obstructionChan <-chan bool,
 	doorTimeoutChan <-chan int,
@@ -35,19 +38,19 @@ func RunDoor(
 
 	startObstructed bool,
 ) {
-	var doorInstanceState DoorState
-	initCommands := []doorCommand{closeDoor}
+	var doorInstanceState state
+	initCommands := []command{closeDoor}
 	if startObstructed {
-		doorInstanceState = Stuck
+		doorInstanceState = stuck
 		initCommands = append(initCommands, resetObstructionTimer)
 	} else {
-		doorInstanceState = Closed
+		doorInstanceState = closed
 		initCommands = append(initCommands, stopObstructionTimer)
 	}
 	executeCommands(startDoorTimerChan, doorCloseChan, resetObstructionTimerChan, stopObstructionTimerChan, initCommands)
 
 	for {
-		var commands []doorCommand
+		var commands []command
 		select {
 		case obstructionEvent := <-obstructionChan:
 			doorInstanceState, commands = onObstructionEvent(obstructionEvent, doorInstanceState)
@@ -66,7 +69,7 @@ func executeCommands(
 	doorCloseChan chan<- int,
 	resetObstructionTimerChan chan<- int,
 	stopObstructionTimerChan chan<- int,
-	commands []doorCommand,
+	commands []command,
 ) {
 	for _, command := range commands {
 		switch command {
@@ -85,49 +88,52 @@ func executeCommands(
 	}
 }
 
-func onObstructionEvent(obstructionEvent bool, state DoorState) (newState DoorState, commands []doorCommand) {
-	if obstructionEvent {
+func onObstructionEvent(obstructionEvent bool, state state) (newState state, commands []command) {
+	if obstructionEvent && state != closed {
 		commands = append(commands, resetObstructionTimer)
 	} else {
 		commands = append(commands, stopObstructionTimer)
 	}
 
 	switch state {
-	case Open:
-		newState = Stuck
-	case Closed:
-		newState = Stuck
-	case Stuck:
+	case open:
+		newState = stuck
+	case closed:
+		newState = stuck
+	case stuck:
 		if !obstructionEvent {
 			fmt.Println("Obstruction freed")
-			newState = Open
+			newState = open
 			commands = append(commands, resetTimer)
 			return
 		}
-		newState = Stuck
+		newState = stuck
 	}
 	return
 }
 
-func onDoorTimeout(state DoorState) (DoorState, []doorCommand) {
+func onDoorTimeout(state state) (newState state, commands []command) {
 	switch state {
-	case Open:
-		return Closed, []doorCommand{closeDoor}
-	case Closed:
-	case Stuck:
-		return state, []doorCommand{resetTimer}
+	case open:
+		newState = closed
+		commands = append(commands, closeDoor)
+	case closed:
+	case stuck:
+		commands = append(commands, resetTimer)
 	}
-	return state, nil
+	return
 }
 
-func onDoorRequest(state DoorState) (DoorState, []doorCommand) {
+func onDoorRequest(state state) (newState state, commands []command) {
 	switch state {
-	case Open:
-		return state, []doorCommand{resetTimer}
-	case Closed:
-		return Open, []doorCommand{resetTimer, openDoor}
-	case Stuck:
-		return Stuck, []doorCommand{resetTimer, openDoor}
+	case open:
+		commands = append(commands, resetTimer)
+	case closed:
+		newState = open
+		commands = append(commands, resetTimer, openDoor)
+	case stuck:
+		newState = stuck
+		commands = append(commands, openDoor, resetObstructionTimer)
 	}
-	return state, nil
+	return
 }

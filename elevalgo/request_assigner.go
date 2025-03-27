@@ -1,38 +1,38 @@
 package elevalgo
 
 import (
+	"fmt"
 	"math"
 	"sanntidslab/elevio"
 	"slices"
 )
 
-type ElevatorEntry struct {
+type Entry struct {
 	State Elevator
 	Id    string
 }
 
-// Sort all elevators by distance to request floor
-// If idle, assign
-// If moving towards request, assign
-// If all elevators are moving away from request, assign closest
-
-func GetBestElevator(entries []ElevatorEntry, buttonEvent elevio.ButtonEvent) string {
+// Gets the best elevator based on who is closest to the call and who it's most
+// convenient for
+func GetBestElevator(entries []Entry, buttonEvent elevio.ButtonEvent) string {
 	slices.SortFunc(
 		entries,
-		func(a, b ElevatorEntry) int {
+		func(a, b Entry) int {
 			return int(math.Abs(float64(a.State.Floor-buttonEvent.Floor)) -
 				math.Abs(float64(b.State.Floor-buttonEvent.Floor)))
 		},
 	)
 
 	for _, entry := range entries {
-		if entry.State.Behaviour == idle {
-			return entry.Id
-		} else if entry.State.direction == -1 && buttonEvent.Floor-entry.State.Floor < 0 {
-			return entry.Id
-		} else if entry.State.direction == 1 && buttonEvent.Floor-entry.State.Floor > 0 {
-			return entry.Id
+		fmt.Println("ID:", entry.Id)
+		fmt.Println("direction:", entry.State.Direction)
+		fmt.Println("state floor:", entry.State.Floor)
+		fmt.Println("call floor:", buttonEvent.Floor)
+		if (entry.State.Direction == Down && buttonEvent.Floor-entry.State.Floor+1 > 0) ||
+			(entry.State.Direction == Up && buttonEvent.Floor-entry.State.Floor-1 < 0) {
+			continue
 		}
+		return entry.Id
 	}
 
 	return entries[0].Id

@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"path"
 	"sanntidslab/door"
 	"sanntidslab/elevalgo"
 	"sanntidslab/elevio"
@@ -15,9 +17,11 @@ import (
 
 const (
 	defaultElevatorPort = 15657
-	obstructionTimeout  = time.Second * 10
-	motorTimeout        = time.Second * 10
+	obstructionTimeout  = time.Second * 4
+	motorTimeout        = time.Second * 4
 )
+
+var configPath = path.Join("elevalgo", "config.yaml")
 
 func main() {
 	// ---- Flags ----
@@ -31,8 +35,10 @@ func main() {
 
 	// // ---- Initialize elevator ----
 	elevio.Init("localhost:"+strconv.Itoa(port), elevalgo.NumFloors)
-	elevalgo.InitFsm()
-	initElevator, doorOpenDuration := elevalgo.InitBetweenFloors()
+	config, err := elevalgo.LoadConfig(configPath)
+	if err != nil {
+		log.Fatal("Loading config failed with error", err)
+	}
 
 	// ---- Initialize hardware communication ----
 	buttonEventChan := make(chan elevio.ButtonEvent, 1)
@@ -50,7 +56,7 @@ func main() {
 	resetDoorTimerChan := make(chan int)
 	stopDoorTimerChan := make(chan int)
 	doorTimeoutChan := make(chan int)
-	go timer.RunTimer(resetDoorTimerChan, stopDoorTimerChan, doorTimeoutChan, doorOpenDuration, false, "Door timer")
+	go timer.RunTimer(resetDoorTimerChan, stopDoorTimerChan, doorTimeoutChan, config.DoorOpenDuration, false, "Door timer")
 
 	// Obstruction timer
 	resetObstructionTimerChan := make(chan int)
@@ -82,7 +88,7 @@ func main() {
 		nodeElevatorStateChan,
 		orderChan,
 		peerStateChan,
-		initElevator,
+		config,
 		id,
 	)
 
@@ -95,6 +101,7 @@ func main() {
 		nodeElevatorStateChan,
 		resetMotorTimerChan,
 		stopMotorTimerChan,
+		config,
 	)
 
 	go door.RunDoor(

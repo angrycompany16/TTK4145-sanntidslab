@@ -3,15 +3,19 @@ package elevalgo
 import (
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	"github.com/go-yaml/yaml"
 )
 
-var ConfigPath = path.Join("elevalgo", "elevator_config.yaml")
-
 type clearRequestVariant int
+
+const (
+	NumFloors      = 4 // Default value
+	NumCabButtons  = 1
+	NumHallButtons = 2
+	NumButtons     = NumCabButtons + NumHallButtons
+)
 
 const (
 	// Assume everyone waiting for the elevator gets on the elevator, even if
@@ -23,24 +27,24 @@ const (
 	clearSameDir
 )
 
-type config struct {
+type Config struct {
 	ClearRequestVariant clearRequestVariant `yaml:"ClearRequestVariant"`
 	DoorOpenDuration    time.Duration       `yaml:"DoorOpenDuration"`
 }
 
-func loadConfig() (config, error) {
-	c := config{}
-	file, err := os.Open(ConfigPath)
+func LoadConfig(configPath string) (Config, error) {
+	_config := Config{}
+	file, err := os.Open(configPath)
 	if err != nil {
 		fmt.Println("Error reading file")
-		return c, err
+		return _config, err
 	}
 	defer file.Close()
 
-	err = yaml.NewDecoder(file).Decode(&c)
+	err = yaml.NewDecoder(file).Decode(&_config)
 	if err != nil {
 		fmt.Println("Error decoding file")
-		return c, err
+		return _config, err
 	}
-	return c, nil
+	return _config, nil
 }

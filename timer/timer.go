@@ -12,6 +12,8 @@ type timer struct {
 	timeout       time.Duration
 }
 
+// Runs a timer which can be reset (automatically starts and resets countdown) and
+// stopped. Can also be set to panic when timing out
 func RunTimer(
 	resetChan <-chan int,
 	stopChan <-chan int,
@@ -31,7 +33,7 @@ func RunTimer(
 			timerInstance.startTime = time.Now()
 			timerInstance.active = true
 		default:
-			timedOut := CheckTimeout(timerInstance)
+			timedOut := checkTimeout(timerInstance)
 			if timedOut {
 				timerInstance.active = false
 				if panicOnTimeout {
@@ -45,7 +47,7 @@ func RunTimer(
 	}
 }
 
-func CheckTimeout(_timer timer) bool {
+func checkTimeout(_timer timer) bool {
 	timedOut := _timer.active && time.Since(_timer.startTime) > _timer.timeout
 	return timedOut && timedOut != _timer.timedOutCache
 }
