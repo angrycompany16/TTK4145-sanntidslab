@@ -1,7 +1,6 @@
 package elevalgo
 
 import (
-	"fmt"
 	"sanntidslab/elevio"
 	"time"
 )
@@ -37,7 +36,6 @@ func RunElevator(
 	var commands []elevatorCommands
 
 	elevatorInstance := NewUninitializedElevator(config)
-	fmt.Println(elevatorInstance.config)
 	elevatorInstance, commands = initBetweenFloors(elevatorInstance)
 
 	executeCommands(commands, doorRequestChan, resetMotorTimerChan, stopMotorTimerChan)
