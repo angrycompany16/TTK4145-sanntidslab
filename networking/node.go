@@ -144,7 +144,6 @@ func redistributeLostHallCalls(lostPeer peer, _node node) node {
 			}
 		}
 	}
-
 	return _node
 }
 
@@ -166,7 +165,6 @@ func restoreLostCabCalls(heartbeat Heartbeat, _node node) PendingRequestList {
 			printRequest(i, elevio.BT_Cab)
 		}
 	}
-
 	return _node.pendingRequestList
 }
 
