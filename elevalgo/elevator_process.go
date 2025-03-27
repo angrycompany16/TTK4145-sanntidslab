@@ -1,6 +1,7 @@
 package elevalgo
 
 import (
+	"fmt"
 	"sanntidslab/elevio"
 	"time"
 )
@@ -18,7 +19,8 @@ type elevatorCommands struct {
 	value any
 }
 
-// Runs an elevator that maintains a finite state machine and communicates with hardware
+// Runs a simple state machine for the elevator, which interfaces with the driver. It
+// also manages a timer that panics if the motor loses power.
 func RunElevator(
 	floorChan <-chan int,
 	orderChan <-chan elevio.ButtonEvent,
@@ -29,31 +31,34 @@ func RunElevator(
 	lightsElevatorStateChan chan<- Elevator,
 	resetMotorTimerChan chan<- int,
 	stopMotorTimerChan chan<- int,
+
+	config Config,
 ) {
 	var commands []elevatorCommands
-	var newElevator Elevator
+
+	elevatorInstance := NewUninitializedElevator(config)
+	fmt.Println(elevatorInstance.config)
+	elevatorInstance, commands = initBetweenFloors(elevatorInstance)
+
+	executeCommands(commands, doorRequestChan, resetMotorTimerChan, stopMotorTimerChan)
 
 	for {
 		select {
 		case order := <-orderChan:
-			newElevator, commands = requestButtonPressed(elevator, order.Floor, order.Button)
-			elevator = newElevator
+			elevatorInstance, commands = requestButtonPressed(elevatorInstance, order.Floor, order.Button)
 
-			nodeElevatorStateChan <- newElevator
-			lightsElevatorStateChan <- newElevator
+			nodeElevatorStateChan <- elevatorInstance
+			lightsElevatorStateChan <- elevatorInstance
 		case floor := <-floorChan:
-			newElevator, commands = onFloorArrival(elevator, floor)
+			elevatorInstance, commands = onFloorArrival(elevatorInstance, floor)
 
-			elevator = newElevator
-
-			nodeElevatorStateChan <- newElevator
-			lightsElevatorStateChan <- newElevator
+			nodeElevatorStateChan <- elevatorInstance
+			lightsElevatorStateChan <- elevatorInstance
 		case <-doorCloseChan:
-			newElevator, commands = onDoorClose(elevator)
-			elevator = newElevator
+			elevatorInstance, commands = onDoorClose(elevatorInstance)
 
-			nodeElevatorStateChan <- newElevator
-			lightsElevatorStateChan <- newElevator
+			nodeElevatorStateChan <- elevatorInstance
+			lightsElevatorStateChan <- elevatorInstance
 		default:
 			time.Sleep(time.Millisecond * 10)
 			continue

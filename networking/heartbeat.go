@@ -2,6 +2,8 @@ package networking
 
 import elevalgo "sanntidslab/elevalgo"
 
+// Contains all information needed to ensure consistency among peers, should always be
+// sent periodically
 type Heartbeat struct {
 	SenderId        string
 	Uptime          int64

@@ -2,15 +2,7 @@ package elevalgo
 
 import (
 	"fmt"
-	"log"
 	"sanntidslab/elevio"
-)
-
-const (
-	NumFloors      = 4
-	NumCabButtons  = 1
-	NumHallButtons = 2
-	NumButtons     = NumCabButtons + NumHallButtons
 )
 
 type elevatorBehaviour int
@@ -21,34 +13,34 @@ const (
 	moving
 )
 
-type direction int
+type Direction int
 
 const (
-	down direction = iota - 1
-	stop
-	up
+	Down Direction = iota - 1
+	Stop
+	Up
 )
 
 type Elevator struct {
 	Floor     int
-	direction direction
+	Direction Direction
 	Requests  [NumFloors][NumButtons]bool
 	Behaviour elevatorBehaviour
-	config    config
+	config    Config
 }
 
 type dirBehaviourPair struct {
-	dir       direction
+	dir       Direction
 	behaviour elevatorBehaviour
 }
 
-func dirToString(d direction) string {
+func dirToString(d Direction) string {
 	switch d {
-	case up:
+	case Up:
 		return "D_Up"
-	case down:
+	case Down:
 		return "D_Down"
-	case stop:
+	case Stop:
 		return "D_Stop"
 	default:
 		return "D_UNDEFINED"
@@ -84,7 +76,7 @@ func behaviourToString(behaviour elevatorBehaviour) string {
 func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
 	fmt.Printf("  |floor = %-2d          |\n", e.Floor)
-	fmt.Printf("  |dirn  = %-12.12s|\n", dirToString(e.direction))
+	fmt.Printf("  |dirn  = %-12.12s|\n", dirToString(e.Direction))
 	fmt.Printf("  |behav = %-12.12s|\n", behaviourToString(e.Behaviour))
 
 	fmt.Println("  +--------------------+")
@@ -107,15 +99,10 @@ func (e *Elevator) print() {
 	fmt.Println("  +--------------------+")
 }
 
-func MakeUninitializedelevator() Elevator {
-	config, err := loadConfig()
-	if err != nil {
-		log.Fatal("Failed to initialize elevator from .yaml file")
-	}
-
+func NewUninitializedElevator(config Config) Elevator {
 	return Elevator{
 		Floor:     -1,
-		direction: stop,
+		Direction: Stop,
 		Behaviour: idle,
 		config:    config,
 	}

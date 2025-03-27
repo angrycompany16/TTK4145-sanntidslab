@@ -4,10 +4,10 @@ import (
 	"sanntidslab/elevio"
 )
 
-func (e *Elevator) requestsAbove() bool {
-	for f := e.Floor + 1; f < NumFloors; f++ {
+func hasRequestsAbove(elevator Elevator) bool {
+	for f := elevator.Floor + 1; f < NumFloors; f++ {
 		for btn := range NumButtons {
-			if e.Requests[f][btn] {
+			if elevator.Requests[f][btn] {
 				return true
 			}
 		}
@@ -15,10 +15,10 @@ func (e *Elevator) requestsAbove() bool {
 	return false
 }
 
-func (e *Elevator) requestsBelow() bool {
-	for f := range e.Floor {
+func hasRequestsBelow(elevator Elevator) bool {
+	for f := range elevator.Floor {
 		for btn := range NumButtons {
-			if e.Requests[f][btn] {
+			if elevator.Requests[f][btn] {
 				return true
 			}
 		}
@@ -26,102 +26,102 @@ func (e *Elevator) requestsBelow() bool {
 	return false
 }
 
-func (e *Elevator) requestsHere() bool {
+func hasRequestsHere(elevator Elevator) bool {
 	for btn := range NumButtons {
-		if e.Requests[e.Floor][btn] {
+		if elevator.Requests[elevator.Floor][btn] {
 			return true
 		}
 	}
 	return false
 }
 
-func (e *Elevator) chooseDirection() dirBehaviourPair {
-	switch e.direction {
-	case up:
-		if e.requestsAbove() {
-			return dirBehaviourPair{up, moving}
-		} else if e.requestsHere() {
-			return dirBehaviourPair{stop, doorOpen}
-		} else if e.requestsBelow() {
-			return dirBehaviourPair{down, moving}
+func chooseDirection(elevator Elevator) dirBehaviourPair {
+	switch elevator.Direction {
+	case Up:
+		if hasRequestsAbove(elevator) {
+			return dirBehaviourPair{Up, moving}
+		} else if hasRequestsHere(elevator) {
+			return dirBehaviourPair{Stop, doorOpen}
+		} else if hasRequestsBelow(elevator) {
+			return dirBehaviourPair{Down, moving}
 		} else {
-			return dirBehaviourPair{stop, idle}
+			return dirBehaviourPair{Stop, idle}
 		}
-	case down:
-		if e.requestsBelow() {
-			return dirBehaviourPair{down, moving}
-		} else if e.requestsHere() {
-			return dirBehaviourPair{stop, doorOpen}
-		} else if e.requestsAbove() {
-			return dirBehaviourPair{up, moving}
+	case Down:
+		if hasRequestsBelow(elevator) {
+			return dirBehaviourPair{Down, moving}
+		} else if hasRequestsHere(elevator) {
+			return dirBehaviourPair{Stop, doorOpen}
+		} else if hasRequestsAbove(elevator) {
+			return dirBehaviourPair{Up, moving}
 		} else {
-			return dirBehaviourPair{stop, idle}
+			return dirBehaviourPair{Stop, idle}
 		}
-	case stop: // there should only be one request in the Stop case. Checking up or down first is arbitrary.
-		if e.requestsHere() {
-			return dirBehaviourPair{stop, doorOpen}
-		} else if e.requestsAbove() {
-			return dirBehaviourPair{up, moving}
-		} else if e.requestsBelow() {
-			return dirBehaviourPair{down, moving}
+	case Stop: // Note: there should only be one request in the Stop case. Checking up or down first is arbitrary.
+		if hasRequestsHere(elevator) {
+			return dirBehaviourPair{Stop, doorOpen}
+		} else if hasRequestsAbove(elevator) {
+			return dirBehaviourPair{Up, moving}
+		} else if hasRequestsBelow(elevator) {
+			return dirBehaviourPair{Down, moving}
 		} else {
-			return dirBehaviourPair{stop, idle}
+			return dirBehaviourPair{Stop, idle}
 		}
 	default:
-		return dirBehaviourPair{stop, idle}
+		return dirBehaviourPair{Stop, idle}
 	}
 }
 
-func (e *Elevator) shouldStop() bool {
-	switch e.direction {
-	case down:
-		return e.Requests[e.Floor][elevio.BT_HallDown] || e.Requests[e.Floor][elevio.BT_Cab] || !e.requestsBelow()
-	case up:
-		return e.Requests[e.Floor][elevio.BT_HallUp] || e.Requests[e.Floor][elevio.BT_Cab] || !e.requestsAbove()
+func shouldStop(elevator Elevator) bool {
+	switch elevator.Direction {
+	case Down:
+		return elevator.Requests[elevator.Floor][elevio.BT_HallDown] || elevator.Requests[elevator.Floor][elevio.BT_Cab] || !hasRequestsBelow(elevator)
+	case Up:
+		return elevator.Requests[elevator.Floor][elevio.BT_HallUp] || elevator.Requests[elevator.Floor][elevio.BT_Cab] || !hasRequestsAbove(elevator)
 	default:
 		return true
 	}
 }
 
-func (e *Elevator) shouldClearImmediately(buttonFloor int, buttonType elevio.ButtonType) bool {
-	switch e.config.ClearRequestVariant {
+func shouldClearImmediately(elevator Elevator, buttonFloor int, buttonType elevio.ButtonType) bool {
+	switch elevator.config.ClearRequestVariant {
 	case clearAll:
-		return e.Floor == buttonFloor
+		return elevator.Floor == buttonFloor
 	case clearSameDir:
-		return e.Floor == buttonFloor && ((e.direction == up && buttonType == elevio.BT_HallUp) ||
-			(e.direction == down && buttonType == elevio.BT_HallDown) ||
-			e.direction == stop ||
+		return elevator.Floor == buttonFloor && ((elevator.Direction == Up && buttonType == elevio.BT_HallUp) ||
+			(elevator.Direction == Down && buttonType == elevio.BT_HallDown) ||
+			elevator.Direction == Stop ||
 			buttonType == elevio.BT_Cab)
 	default:
 		return false
 	}
 }
 
-func clearAtCurrentFloor(e Elevator) Elevator {
-	switch e.config.ClearRequestVariant {
+func clearAtCurrentFloor(elevator Elevator) Elevator {
+	switch elevator.config.ClearRequestVariant {
 	case clearAll:
 		for btn := range NumButtons {
-			e.Requests[e.Floor][btn] = false
+			elevator.Requests[elevator.Floor][btn] = false
 		}
 
 	case clearSameDir:
-		e.Requests[e.Floor][elevio.BT_Cab] = false
-		switch e.direction {
-		case up:
-			if !e.requestsAbove() && !e.Requests[e.Floor][elevio.BT_HallUp] {
-				e.Requests[e.Floor][elevio.BT_HallDown] = false
+		elevator.Requests[elevator.Floor][elevio.BT_Cab] = false
+		switch elevator.Direction {
+		case Up:
+			if !hasRequestsAbove(elevator) && !elevator.Requests[elevator.Floor][elevio.BT_HallUp] {
+				elevator.Requests[elevator.Floor][elevio.BT_HallDown] = false
 			}
-			e.Requests[e.Floor][elevio.BT_HallUp] = false
-		case down:
-			if !e.requestsBelow() && !e.Requests[e.Floor][elevio.BT_HallDown] {
-				e.Requests[e.Floor][elevio.BT_HallUp] = false
+			elevator.Requests[elevator.Floor][elevio.BT_HallUp] = false
+		case Down:
+			if !hasRequestsBelow(elevator) && !elevator.Requests[elevator.Floor][elevio.BT_HallDown] {
+				elevator.Requests[elevator.Floor][elevio.BT_HallUp] = false
 			}
-			e.Requests[e.Floor][elevio.BT_HallDown] = false
+			elevator.Requests[elevator.Floor][elevio.BT_HallDown] = false
 		default:
-			e.Requests[e.Floor][elevio.BT_HallUp] = false
-			e.Requests[e.Floor][elevio.BT_HallDown] = false
+			elevator.Requests[elevator.Floor][elevio.BT_HallUp] = false
+			elevator.Requests[elevator.Floor][elevio.BT_HallDown] = false
 		}
 	}
 
-	return e
+	return elevator
 }

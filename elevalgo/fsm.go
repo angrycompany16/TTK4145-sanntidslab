@@ -4,43 +4,29 @@ import (
 	"fmt"
 	"runtime"
 	"sanntidslab/elevio"
-	"time"
 )
 
-const (
-	DisablePrinting = true // Only for debugging
-)
-
-var (
-	elevator Elevator
-)
-
-func InitFsm() {
-	elevator = MakeUninitializedelevator()
+func initBetweenFloors(elevator Elevator) (newElevator Elevator, commands []elevatorCommands) {
+	commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MD_Down})
+	newElevator = elevator
+	newElevator.Direction = Down
+	newElevator.Behaviour = moving
+	return
 }
 
-func InitBetweenFloors() (Elevator, time.Duration) {
-	elevio.SetMotorDirection(elevio.MD_Down)
-	elevator.direction = down
-	elevator.Behaviour = moving
-	return elevator, elevator.config.DoorOpenDuration
-}
-
-func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonType) (newElevator Elevator, commands []elevatorCommands) {
+func requestButtonPressed(elevator Elevator, buttonFloor int, buttonType elevio.ButtonType) (newElevator Elevator, commands []elevatorCommands) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	if !DisablePrinting {
-		fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, ButtonToString(buttonType))
-		elevator.print()
-	}
+	fmt.Printf("\n\n%s(%d, %s)\n", frame.Function, buttonFloor, ButtonToString(buttonType))
+	elevator.print()
 
-	newElevator = e
+	newElevator = elevator
 	switch newElevator.Behaviour {
 	case doorOpen:
-		if newElevator.shouldClearImmediately(buttonFloor, buttonType) {
+		if shouldClearImmediately(newElevator, buttonFloor, buttonType) {
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: nil})
 		} else {
 			newElevator.Requests[buttonFloor][buttonType] = true
@@ -49,40 +35,37 @@ func requestButtonPressed(e Elevator, buttonFloor int, buttonType elevio.ButtonT
 		newElevator.Requests[buttonFloor][buttonType] = true
 	case idle:
 		newElevator.Requests[buttonFloor][buttonType] = true
-		pair := newElevator.chooseDirection()
-		newElevator.direction = pair.dir
+		pair := chooseDirection(newElevator)
+		newElevator.Direction = pair.dir
 		newElevator.Behaviour = pair.behaviour
 		switch pair.behaviour {
 		case doorOpen:
-			// How to encode this in another way...
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
 		case moving:
-			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
+			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.Direction)})
 		}
 	}
 	return
 }
 
-func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []elevatorCommands) {
+func onFloorArrival(elevator Elevator, newFloor int) (newElevator Elevator, commands []elevatorCommands) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	if !DisablePrinting {
-		fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
-		elevator.print()
-	}
+	fmt.Printf("\n\n%s(%d)\n", frame.Function, newFloor)
+	elevator.print()
 
-	newElevator = e
+	newElevator = elevator
 	newElevator.Floor = newFloor
 
 	commands = append(commands, elevatorCommands{_type: setFloorIndicator, value: newFloor})
 
 	switch newElevator.Behaviour {
 	case moving:
-		if newElevator.shouldStop() {
+		if shouldStop(newElevator) {
 			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
@@ -92,23 +75,21 @@ func onFloorArrival(e Elevator, newFloor int) (newElevator Elevator, commands []
 	return
 }
 
-func onDoorClose(e Elevator) (newElevator Elevator, commands []elevatorCommands) {
+func onDoorClose(elevator Elevator) (newElevator Elevator, commands []elevatorCommands) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
-	if !DisablePrinting {
-		fmt.Printf("\n\n%s()\n", frame.Function)
-		elevator.print()
-	}
+	fmt.Printf("\n\n%s()\n", frame.Function)
+	elevator.print()
 
-	newElevator = e
+	newElevator = elevator
 
 	switch newElevator.Behaviour {
 	case doorOpen:
-		pair := newElevator.chooseDirection()
-		newElevator.direction = pair.dir
+		pair := chooseDirection(newElevator)
+		newElevator.Direction = pair.dir
 		newElevator.Behaviour = pair.behaviour
 
 		switch newElevator.Behaviour {
@@ -117,7 +98,7 @@ func onDoorClose(e Elevator) (newElevator Elevator, commands []elevatorCommands)
 			newElevator = clearAtCurrentFloor(newElevator)
 
 		case moving, idle:
-			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.direction)})
+			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.Direction)})
 		}
 	}
 	return
