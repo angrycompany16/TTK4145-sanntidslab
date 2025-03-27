@@ -28,7 +28,7 @@ for opt; do
     case "$opt" in
         -i|--id) id="$2"; shift 2 ;;
         -p|--port) port="$2"; shift 2 ;;
-        -v|--verbose) exec_bash="exec bash"; verbose="true" echo "Hello"; shift ;;
+        -v|--verbose) exec_bash="exec bash"; verbose="true"; shift ;;
     esac
 done
 

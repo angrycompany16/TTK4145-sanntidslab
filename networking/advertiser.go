@@ -42,18 +42,18 @@ func getAssignee(buttonEvent elevio.ButtonEvent, _node node) string {
 		return nodeID
 	}
 
-	entries := make([]elevalgo.Entry, 0)
+	entries := make([]ElevatorEntry, 0)
 
-	entries = append(entries, elevalgo.Entry{State: _node.state, Id: nodeID})
+	entries = append(entries, ElevatorEntry{State: _node.state, Id: nodeID})
 	for _, _peer := range _node.peers {
 		if !_peer.connected {
 			continue
 		}
 
-		entries = append(entries, elevalgo.Entry{State: _peer.State, Id: _peer.Id})
+		entries = append(entries, ElevatorEntry{State: _peer.State, Id: _peer.Id})
 	}
 
-	return elevalgo.GetBestElevator(entries, buttonEvent)
+	return GetBestElevator(entries, buttonEvent)
 }
 
 func newAdvertisedRequest(assigneeID string) AdvertisedRequest {
