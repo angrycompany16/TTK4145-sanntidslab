@@ -39,36 +39,36 @@ func chooseDirection(elevator Elevator) dirBehaviourPair {
 	switch elevator.Direction {
 	case Up:
 		if hasRequestsAbove(elevator) {
-			return dirBehaviourPair{Up, moving}
+			return dirBehaviourPair{Up, Moving}
 		} else if hasRequestsHere(elevator) {
-			return dirBehaviourPair{Stop, doorOpen}
+			return dirBehaviourPair{Stop, DoorOpen}
 		} else if hasRequestsBelow(elevator) {
-			return dirBehaviourPair{Down, moving}
+			return dirBehaviourPair{Down, Moving}
 		} else {
-			return dirBehaviourPair{Stop, idle}
+			return dirBehaviourPair{Stop, Idle}
 		}
 	case Down:
 		if hasRequestsBelow(elevator) {
-			return dirBehaviourPair{Down, moving}
+			return dirBehaviourPair{Down, Moving}
 		} else if hasRequestsHere(elevator) {
-			return dirBehaviourPair{Stop, doorOpen}
+			return dirBehaviourPair{Stop, DoorOpen}
 		} else if hasRequestsAbove(elevator) {
-			return dirBehaviourPair{Up, moving}
+			return dirBehaviourPair{Up, Moving}
 		} else {
-			return dirBehaviourPair{Stop, idle}
+			return dirBehaviourPair{Stop, Idle}
 		}
 	case Stop: // Note: there should only be one request in the Stop case. Checking up or down first is arbitrary.
 		if hasRequestsHere(elevator) {
-			return dirBehaviourPair{Stop, doorOpen}
+			return dirBehaviourPair{Stop, DoorOpen}
 		} else if hasRequestsAbove(elevator) {
-			return dirBehaviourPair{Up, moving}
+			return dirBehaviourPair{Up, Moving}
 		} else if hasRequestsBelow(elevator) {
-			return dirBehaviourPair{Down, moving}
+			return dirBehaviourPair{Down, Moving}
 		} else {
-			return dirBehaviourPair{Stop, idle}
+			return dirBehaviourPair{Stop, Idle}
 		}
 	default:
-		return dirBehaviourPair{Stop, idle}
+		return dirBehaviourPair{Stop, Idle}
 	}
 }
 

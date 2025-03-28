@@ -10,7 +10,7 @@ func initBetweenFloors(elevator Elevator) (newElevator Elevator, commands []elev
 	commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MD_Down})
 	newElevator = elevator
 	newElevator.Direction = Down
-	newElevator.Behaviour = moving
+	newElevator.Behaviour = Moving
 	return
 }
 
@@ -25,24 +25,24 @@ func requestButtonPressed(elevator Elevator, buttonFloor int, buttonType elevio.
 
 	newElevator = elevator
 	switch newElevator.Behaviour {
-	case doorOpen:
+	case DoorOpen:
 		if shouldClearImmediately(newElevator, buttonFloor, buttonType) {
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: nil})
 		} else {
 			newElevator.Requests[buttonFloor][buttonType] = true
 		}
-	case moving:
+	case Moving:
 		newElevator.Requests[buttonFloor][buttonType] = true
-	case idle:
+	case Idle:
 		newElevator.Requests[buttonFloor][buttonType] = true
 		pair := chooseDirection(newElevator)
 		newElevator.Direction = pair.dir
 		newElevator.Behaviour = pair.behaviour
 		switch pair.behaviour {
-		case doorOpen:
+		case DoorOpen:
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
-		case moving:
+		case Moving:
 			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.Direction)})
 		}
 	}
@@ -64,12 +64,12 @@ func onFloorArrival(elevator Elevator, newFloor int) (newElevator Elevator, comm
 	commands = append(commands, elevatorCommands{_type: setFloorIndicator, value: newFloor})
 
 	switch newElevator.Behaviour {
-	case moving:
+	case Moving:
 		if shouldStop(newElevator) {
 			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(elevio.MD_Stop)})
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: true})
 			newElevator = clearAtCurrentFloor(newElevator)
-			newElevator.Behaviour = doorOpen
+			newElevator.Behaviour = DoorOpen
 		}
 	}
 	return
@@ -87,17 +87,17 @@ func onDoorClose(elevator Elevator) (newElevator Elevator, commands []elevatorCo
 	newElevator = elevator
 
 	switch newElevator.Behaviour {
-	case doorOpen:
+	case DoorOpen:
 		pair := chooseDirection(newElevator)
 		newElevator.Direction = pair.dir
 		newElevator.Behaviour = pair.behaviour
 
 		switch newElevator.Behaviour {
-		case doorOpen:
+		case DoorOpen:
 			commands = append(commands, elevatorCommands{_type: doorRequest, value: nil})
 			newElevator = clearAtCurrentFloor(newElevator)
 
-		case moving, idle:
+		case Moving, Idle:
 			commands = append(commands, elevatorCommands{_type: setMotorDirection, value: elevio.MotorDirection(newElevator.Direction)})
 		}
 	}

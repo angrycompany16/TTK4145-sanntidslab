@@ -5,12 +5,12 @@ import (
 	"sanntidslab/elevio"
 )
 
-type elevatorBehaviour int
+type ElevatorBehaviour int
 
 const (
-	idle elevatorBehaviour = iota
-	doorOpen
-	moving
+	Idle ElevatorBehaviour = iota
+	DoorOpen
+	Moving
 )
 
 type Direction int
@@ -25,13 +25,13 @@ type Elevator struct {
 	Floor     int
 	Direction Direction
 	Requests  [NumFloors][NumButtons]bool
-	Behaviour elevatorBehaviour
+	Behaviour ElevatorBehaviour
 	config    Config
 }
 
 type dirBehaviourPair struct {
 	dir       Direction
-	behaviour elevatorBehaviour
+	behaviour ElevatorBehaviour
 }
 
 func dirToString(d Direction) string {
@@ -60,13 +60,13 @@ func ButtonToString(b elevio.ButtonType) string {
 	}
 }
 
-func behaviourToString(behaviour elevatorBehaviour) string {
+func behaviourToString(behaviour ElevatorBehaviour) string {
 	switch behaviour {
-	case idle:
+	case Idle:
 		return "EB_Idle"
-	case doorOpen:
+	case DoorOpen:
 		return "EB_DoorOpen"
-	case moving:
+	case Moving:
 		return "EB_Moving"
 	default:
 		return "EB_UNDEFINED"
@@ -103,7 +103,7 @@ func NewUninitializedElevator(config Config) Elevator {
 	return Elevator{
 		Floor:     -1,
 		Direction: Stop,
-		Behaviour: idle,
+		Behaviour: Idle,
 		config:    config,
 	}
 }

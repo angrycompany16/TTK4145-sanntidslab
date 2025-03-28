@@ -24,8 +24,10 @@ func GetBestElevator(entries []ElevatorEntry, buttonEvent elevio.ButtonEvent) st
 	)
 
 	for _, entry := range entries {
-		if (entry.State.Direction == elevalgo.Down && buttonEvent.Floor-entry.State.Floor+1 > 0) ||
-			(entry.State.Direction == elevalgo.Up && buttonEvent.Floor-entry.State.Floor-1 < 0) {
+		floorDiff := buttonEvent.Floor - entry.State.Floor
+		if entry.State.Behaviour == elevalgo.Moving &&
+			(entry.State.Direction == elevalgo.Down && floorDiff+1 > 0) ||
+			(entry.State.Direction == elevalgo.Up && floorDiff-1 < 0) {
 			continue
 		}
 		return entry.Id
